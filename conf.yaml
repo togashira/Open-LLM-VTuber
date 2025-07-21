@@ -17,6 +17,16 @@
       proactive_speak_prompt: 'proactive_speak_prompt'
     group_conversation_prompt: 'group_conversation_prompt' # グループ会話時、各AI参加者のメモリに追加されるプロンプト
 
+  # フロントエンド設定
+  frontend:
+    asset_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/assets"
+    live2d_model_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models"
+    live2d_models:
+      - name: mao_pro
+        path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/mao_pro"
+      - name: shizuku-local
+        path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/shizuku"
+
   # デフォルトキャラクターの設定
   #character_config:
   #  conf_name: 'shizuku-local' # キャラクター設定ファイル名
@@ -41,6 +51,10 @@
     character_name: "Mao"
     avatar: "mao.png"
     human_name: "Human"
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2bf20d3 (WEB用ブランチ: 、動作確認済み)
     # ============== プロンプト ==============
 
     # ペルソナ選択は廃止

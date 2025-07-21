@@ -133,7 +133,7 @@
     },
     {
         "name": "mao_pro",
-        "description": "Mao",
+        "description": "Mao Pro Model - Local",
         "url": "https://itcometrue.academy/live2d-models/mao_pro/mao_pro.model3.json",
         "kScale": 0.3,
         "initialXshift": 0,

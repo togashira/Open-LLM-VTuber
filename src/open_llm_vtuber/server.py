@@ -62,8 +62,7 @@ class WebSocketServer:
             name="cache",
         )
 
-        # Mount static files
-       # Mount static files（live2d-modelsはconfigからパス取得）        
+        # Mount static files（live2d-modelsはconfigからパス取得）
         frontend_config = getattr(config, "frontend", None)
         live2d_model_path = "live2d-models"
         # dict型の場合
@@ -78,11 +77,11 @@ class WebSocketServer:
         
         print(f"Live2D models directory: {live2d_model_path}")
         print(f"Directory exists: {os.path.exists(live2d_model_path)}")
-
+        
         # カスタムエンドポイントの定義前にログ出力
         print("🚀 About to define custom Live2D endpoint...")
-
-       # StaticFilesの代わりにカスタムエンドポイントを使用
+        
+        # StaticFilesの代わりにカスタムエンドポイントを使用
         @self.app.get("/live2d-models/{file_path:path}")
         async def serve_live2d_file(file_path: str):
             """Live2Dファイルを提供するエンドポイント"""
@@ -140,14 +139,6 @@ class WebSocketServer:
             name="frontend",
         )
         print("✅ Frontend mount re-enabled")
-
-#コメントアウト
-        #self.app.mount(
-        #    "/live2d-models",
-              # ヘルスチェック専用エンドポイント（ALB/ELB用）
-        @self.app.get("/healthz", include_in_schema=False)
-        async def health_check():
-            return Response(content="OK", status_code=200)
 
     def run(self):
         pass
