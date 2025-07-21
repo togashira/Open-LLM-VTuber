@@ -1,7 +1,7 @@
   # システム設定: サーバーの初期化に関する設定
   system_config:
     conf_version: 'v1.2.0'
-    host: 'localhost' # 他のデバイスからこのページにアクセスしたい場合は0.0.0.0を使用
+    host: '0.0.0.0' # 他のデバイスからこのページにアクセスしたい場合は0.0.0.0を使用
     port: 12393
     # 代替設定用の新しいディレクトリ設定
     config_alts_dir: 'characters'
@@ -18,14 +18,29 @@
     group_conversation_prompt: 'group_conversation_prompt' # グループ会話時、各AI参加者のメモリに追加されるプロンプト
 
   # デフォルトキャラクターの設定
+  #character_config:
+  #  conf_name: 'shizuku-local' # キャラクター設定ファイル名
+  #  conf_uid: 'shizuku-local-001' # キャラクター設定の一意識別子
+  #  live2d_model_name: 'shizuku-local' # Live2Dモデル名。model_dict.jsonの該当名と一致させること
+  #  character_name: 'Shizuku' # グループ会話やAIの表示名に使用
+  #  avatar: 'shizuku.png' # アバター画像。正方形推奨。avatarsフォルダに保存。空欄の場合はキャラ名の頭文字を使用
+  #  human_name: 'Human' # グループ会話や人間側の表示名に使用 
+  #フロントフォルダ指定
+  frontend:
+    asset_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/assets"
+    live2d_model_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models"
+    live2d_models:
+      - name: mao_pro
+        path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/mao_pro"
+      - name: shizuku-local
+        path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/shizuku-local"
   character_config:
-    conf_name: 'shizuku-local' # キャラクター設定ファイル名
-    conf_uid: 'shizuku-local-001' # キャラクター設定の一意識別子
-    live2d_model_name: 'shizuku-local' # Live2Dモデル名。model_dict.jsonの該当名と一致させること
-    character_name: 'Shizuku' # グループ会話やAIの表示名に使用
-    avatar: 'shizuku.png' # アバター画像。正方形推奨。avatarsフォルダに保存。空欄の場合はキャラ名の頭文字を使用
-    human_name: 'Human' # グループ会話や人間側の表示名に使用
-
+    conf_name: "mao_pro"
+    conf_uid: "mao-001"
+    live2d_model_name: "mao_pro"
+    character_name: "Mao"
+    avatar: "mao.png"
+    human_name: "Human"
     # ============== プロンプト ==============
 
     # ペルソナ選択は廃止
@@ -128,7 +143,7 @@
           unload_at_exit: true # 終了時にモデルをメモリからアンロード
 
         openai_llm:
-          llm_api_key: 'Your Open AI API key'
+          llm_api_key: 'API-KEY'
           model: 'gpt-4o'
           temperature: 1.0 # 0～2の値
           # llm_api_key: 'Your Open AI API key'

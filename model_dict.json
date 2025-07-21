@@ -2,7 +2,7 @@
     {
         "name": "shizuku-local",
         "description": "Orange-Haired Girl, locally available. no internet required.",
-        "url": "/live2d-models/shizuku/shizuku.model.json",
+        "url": "https://itcometrue.academy/live2d-models/shizuku/shizuku.model.json",
         "kScale": 0.5,
         "initialXshift": 0,
         "initialYshift": 0,
@@ -33,7 +33,7 @@
             }
         }
     },
-    {
+        {
         "name": "shizuku",
         "description": "Orange-Haired Girl. Will fetch from CDN.",
         "url": "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json",
@@ -133,8 +133,8 @@
     },
     {
         "name": "mao_pro",
-        "description": "",
-        "url": "/live2d-models/mao_pro/mao_pro.model3.json",
+        "description": "Mao",
+        "url": "https://itcometrue.academy/live2d-models/mao_pro/mao_pro.model3.json",
         "kScale": 0.3,
         "initialXshift": 0,
         "initialYshift": 0,

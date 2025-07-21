@@ -9,6 +9,17 @@ from loguru import logger
 from upgrade import sync_user_config, select_language
 from src.open_llm_vtuber.server import WebSocketServer
 from src.open_llm_vtuber.config_manager import Config, read_yaml, validate_config
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+app = FastAPI()
+
+@app.get("/")
+async def root():
+  return {"status": "healthy"}  # ヘルスチェック用200レスポンス
+
+# modelURL固定 2025/7/21
+app.mount("/live2d-models", StaticFiles(directory="/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models", html=True), name="live2d")
+#ここまで
 
 os.environ["HF_HOME"] = str(Path(__file__).parent / "models")
 os.environ["MODELSCOPE_CACHE"] = str(Path(__file__).parent / "models")
