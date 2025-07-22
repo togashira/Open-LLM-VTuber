@@ -28,33 +28,21 @@
         path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/shizuku"
 
   # デフォルトキャラクターの設定
-  #character_config:
-  #  conf_name: 'shizuku-local' # キャラクター設定ファイル名
-  #  conf_uid: 'shizuku-local-001' # キャラクター設定の一意識別子
-  #  live2d_model_name: 'shizuku-local' # Live2Dモデル名。model_dict.jsonの該当名と一致させること
-  #  character_name: 'Shizuku' # グループ会話やAIの表示名に使用
-  #  avatar: 'shizuku.png' # アバター画像。正方形推奨。avatarsフォルダに保存。空欄の場合はキャラ名の頭文字を使用
-  #  human_name: 'Human' # グループ会話や人間側の表示名に使用 
-  #フロントフォルダ指定
-  frontend:
-    asset_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/assets"
-    live2d_model_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models"
-    live2d_models:
-      - name: mao_pro
-        path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/mao_pro"
-      - name: shizuku-local
-        path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/shizuku-local"
   character_config:
-    conf_name: "mao_pro"
-    conf_uid: "mao-001"
-    live2d_model_name: "mao_pro"
-    character_name: "Mao"
-    avatar: "mao.png"
-    human_name: "Human"
-<<<<<<< HEAD
-=======
-
->>>>>>> 2bf20d3 (WEB用ブランチ: 、動作確認済み)
+    conf_name: 'shizuku-local' # キャラクター設定ファイル名
+    conf_uid: 'shizuku-local-001' # キャラクター設定の一意識別子
+    live2d_model_name: 'shizuku-local' # Live2Dモデル名。model_dict.jsonの該当名と一致させること
+    character_name: 'Shizuku' # グループ会話やAIの表示名に使用
+    avatar: 'shizuku.png' # アバター画像。正方形推奨。avatarsフォルダに保存。空欄の場合はキャラ名の頭文字を使用
+    human_name: 'Human' # グループ会話や人間側の表示名に使用 
+  #フロントフォルダ指定
+  #character_config:
+  #  conf_name: "mao_pro"
+  #  conf_uid: "mao-001"
+  #  live2d_model_name: "mao_pro"
+  #  character_name: "Mao"
+  #  avatar: "mao.png"
+  #  human_name: "Human"
     # ============== プロンプト ==============
 
     # ペルソナ選択は廃止
