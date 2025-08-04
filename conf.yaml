@@ -14,7 +14,7 @@
       # think_tag_prompt: 'think_tag_prompt'
       group_conversation_prompt: 'group_conversation_prompt'
       mcp_prompt: 'mcp_prompt'
-      proactive_speak_prompt: 'proactive_speak_prompt'
+      # proactive_speak_prompt: 'proactive_speak_prompt'  # 積極的発言を無効化
     group_conversation_prompt: 'group_conversation_prompt' # グループ会話時、各AI参加者のメモリに追加されるプロンプト
 
   # フロントエンド設定
@@ -63,7 +63,7 @@
           # 'openai_compatible_llm', 'llama_cpp_llm', 'claude_llm', 'ollama_llm'
           # 'openai_llm', 'gemini_llm', 'zhipu_llm', 'deepseek_llm', 'groq_llm'
           # 'mistral_llm'
-          llm_provider: 'openai_llm'
+          llm_provider: 'openai_compatible_llm'
           # 最初の文の最初のカンマ受信時点でAIが話し始める（遅延削減）
           faster_first_response: true
           # 文分割方法: 'regex' または 'pysbd'
@@ -86,7 +86,7 @@
             provider: 'ollama'
             config:
           #            model: 'llama3.1:latest'
-              model: 'phi3:mini'
+              model: 'qwen2:0.5b'
               temperature: 0
               max_tokens: 8000
               ollama_base_url: 'http://localhost:11434'
@@ -121,7 +121,7 @@
           llm_api_key: 'somethingelse'
           organization_id: 'org_eternity'
           project_id: 'project_glass'
-          model: 'phi3:mini'
+          model: 'qwen2:0.5b'
           temperature: 1.0 # 0～2の値
           interrupt_method: 'user'
           # 割り込み信号のプロンプト挿入方法。providerがシステムプロンプト挿入対応なら'system'、それ以外は'user'。通常変更不要
@@ -138,7 +138,7 @@
 
         ollama_llm:
           base_url: 'http://localhost:11434/v1'
-          model: 'phi3:mini'
+          model: 'qwen2:0.5b'
           temperature: 1.0 # 0～2の値
           # 非アクティブ時にモデルをメモリに保持する秒数。-1で永続保持（Open LLM VTuber終了後も）
           keep_alive: -1
@@ -387,18 +387,18 @@
       # TTSモデルダウンロード: https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
       # config_altsに他例あり
       sherpa_onnx_tts:
-        vits_model: '/path/to/tts-models/vits-melo-tts-zh_en/model.onnx' # VITSモデルファイルのパス
-        vits_lexicon: '/path/to/tts-models/vits-melo-tts-zh_en/lexicon.txt' # 辞書ファイルのパス（任意）
-        vits_tokens: '/path/to/tts-models/vits-melo-tts-zh_en/tokens.txt' # tokensファイルのパス
+        vits_model: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/model.onnx' # VITSモデルファイルのパス
+        vits_lexicon: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/lexicon.txt' # 辞書ファイルのパス（任意）
+        vits_tokens: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/tokens.txt' # tokensファイルのパス
         vits_data_dir: '' # '/path/to/tts-models/vits-piper-en_GB-cori-high/espeak-ng-data'  # espeak-ngデータのパス（任意）
-        vits_dict_dir: '/path/to/tts-models/vits-melo-tts-zh_en/dict' # Jieba辞書のパス（中国語用、任意）
-        tts_rule_fsts: '/path/to/tts-models/vits-melo-tts-zh_en/number.fst,/path/to/tts-models/vits-melo-tts-zh_en/phone.fst,/path/to/tts-models/vits-melo-tts-zh_en/date.fst,/path/to/tts-models/vits-melo-tts-zh_en/new_heteronym.fst' # ルールFSTsファイルのパス（任意）
+        vits_dict_dir: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/dict' # Jieba辞書のパス（中国語用、任意）
+        tts_rule_fsts: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/number.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/phone.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/date.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/new_heteronym.fst' # ルールFSTsファイルのパス（任意）
         max_num_sentences: 2 # バッチあたり最大文数（-1で全て）
-        sid: 1 # 話者ID（マルチスピーカーモデル用）
+        sid: 0 # 話者ID（マルチスピーカーモデル用）
         provider: 'cpu' # 'cpu', 'cuda'（GPU）, 'coreml'（Apple）
         num_threads: 1 # 計算スレッド数
         speed: 1.0 # 話速（1.0が標準）
-        debug: false # デバッグモード（True/False）
+        debug: true # デバッグモード（True/False）
 
 
     # =================== 音声区間検出（VAD） ===================

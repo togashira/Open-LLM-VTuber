@@ -146,13 +146,6 @@ class WebSocketServer:
             name="frontend_assets",
         )
         
-        # Mount libs directory for Live2D libraries
-        self.app.mount(
-            "/libs",
-            CustomStaticFiles(directory="frontend/libs"),
-            name="frontend_libs",
-        )
-        
         # Mount other frontend static files under /static
         self.app.mount(
             "/static",
