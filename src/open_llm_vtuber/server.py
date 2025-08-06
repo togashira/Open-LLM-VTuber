@@ -1,12 +1,11 @@
 import os
 import shutil
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
-import ipaddress
 
 from .routes import init_client_ws_route, init_webtool_routes
 from .service_context import ServiceContext
