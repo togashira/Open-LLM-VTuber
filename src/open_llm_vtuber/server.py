@@ -1,14 +1,62 @@
 import os
 import shutil
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import Response
+import ipaddress
 
 from .routes import init_client_ws_route, init_webtool_routes
 from .service_context import ServiceContext
 from .config_manager.utils import Config
+
+
+class SecurityMiddleware(BaseHTTPMiddleware):
+    """IP制限とセキュリティスキャン対策のミドルウェア"""
+    
+    def __init__(self, app, allowed_ips=None, blocked_ips=None):
+        super().__init__(app)
+        self.allowed_ips = allowed_ips or []
+        self.blocked_ips = blocked_ips or ["10.0.0.57"]  # 攻撃元IPをブロック
+        
+        # 悪意のあるパスパターン
+        self.malicious_patterns = [
+            '.php', 'wp-admin', 'wp-content', 'wp-includes', 
+            'admin.php', 'shell.php', 'filemanager.php',
+            '.well-known', 'xmlrpc.php'
+        ]
+        
+        # AIクローラー・ボットのUser-Agentパターン
+        self.ai_bot_patterns = [
+            'gptbot', 'chatgpt', 'openai', 'anthropic', 'claude',
+            'bingbot', 'bard', 'palm', 'llama', 'meta-ai',
+            'scrapy', 'selenium', 'crawl', 'spider', 'bot',
+            'python-requests', 'curl/', 'wget/', 'httpx'
+        ]
+    
+    async def dispatch(self, request: Request, call_next):
+        client_ip = request.client.host
+        user_agent = request.headers.get("user-agent", "").lower()
+        
+        # ブロックリストのIPをチェック
+        if client_ip in self.blocked_ips:
+            return Response("Access Denied", status_code=403)
+        
+        # AIボット・クローラーのUser-Agentをチェック
+        if any(pattern in user_agent for pattern in self.ai_bot_patterns):
+            print(f"🤖 AI Bot blocked: {client_ip} -> {user_agent}")
+            return Response("AI crawling not allowed", status_code=403)
+        
+        # 悪意のあるパスパターンをチェック
+        path = request.url.path
+        if any(pattern in path.lower() for pattern in self.malicious_patterns):
+            print(f"🚨 Malicious request blocked: {client_ip} -> {path}")
+            return Response("Not Found", status_code=404)
+        
+        response = await call_next(request)
+        return response
 
 
 class CustomStaticFiles(StaticFiles):
@@ -30,6 +78,9 @@ class AvatarStaticFiles(StaticFiles):
 class WebSocketServer:
     def __init__(self, config: Config):
         self.app = FastAPI()
+
+        # セキュリティミドルウェアを最初に追加
+        self.app.add_middleware(SecurityMiddleware)
 
         # Add CORS
         self.app.add_middleware(

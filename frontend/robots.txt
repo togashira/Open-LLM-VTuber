@@ -1,0 +1,43 @@
+# VTuber Application - AI Crawlers Not Allowed
+User-agent: *
+Disallow: /
+
+# Specific AI training bots
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Bard
+Disallow: /
+
+User-agent: Meta-ExternalAgent
+Disallow: /
+
+# Protect sensitive directories
+User-agent: *
+Disallow: /live2d-models/
+Disallow: /cache/
+Disallow: /avatars/
+Disallow: /backgrounds/
+Disallow: /web-tool/
+# Note: /ws/ is blocked but /client-ws is allowed for WebSocket connections
+
+# Sitemap (if needed)
+# Sitemap: https://itcometrue.academy/sitemap.xml
