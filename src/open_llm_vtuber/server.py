@@ -1,5 +1,8 @@
+
 import os
 import shutil
+import logging
+from logging.handlers import TimedRotatingFileHandler
 
 from fastapi import FastAPI, Request
 from starlette.middleware.cors import CORSMiddleware
@@ -18,7 +21,27 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, allowed_ips=None, blocked_ips=None):
         super().__init__(app)
         self.allowed_ips = allowed_ips or []
-        self.blocked_ips = blocked_ips or ["10.0.0.57"]  # 攻撃元IPをブロック
+        # プライベートIPとパブリックIP両方をブロック
+        self.blocked_ips = blocked_ips or [
+            "10.0.0.57",  # プライベートIP
+            # 実際の攻撃元パブリックIPが判明次第追加
+        ]
+
+        # ログディレクトリとロガー初期化
+        log_dir = "logs"
+        os.makedirs(log_dir, exist_ok=True)
+        handler = TimedRotatingFileHandler(
+            filename=os.path.join(log_dir, "debug.log"),
+            when="midnight",
+            backupCount=7,
+            encoding="utf-8"
+        )
+        formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+        handler.setFormatter(formatter)
+        self.logger = logging.getLogger("SecurityMiddleware")
+        self.logger.setLevel(logging.INFO)
+        if not self.logger.hasHandlers():
+            self.logger.addHandler(handler)
         
         # 悪意のあるパスパターン
         self.malicious_patterns = [
@@ -36,25 +59,40 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         ]
     
     async def dispatch(self, request: Request, call_next):
+        from datetime import datetime
+        
         client_ip = request.client.host
         user_agent = request.headers.get("user-agent", "").lower()
+        path = request.url.path
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         
-        # ブロックリストのIPをチェック
-        if client_ip in self.blocked_ips:
+        # X-Forwarded-For ヘッダーから実際のパブリックIPを取得
+        forwarded_for = request.headers.get("x-forwarded-for", "")
+        real_ip = forwarded_for.split(',')[0].strip() if forwarded_for else client_ip
+        
+        # デバッグログ: 全リクエストを記録（タイムスタンプ付き）
+        self.logger.info(f"🔍 Request: {real_ip} (via {client_ip}) -> {path} (UA: {user_agent[:50]}...)")
+        if forwarded_for:
+            self.logger.info(f"📡 X-Forwarded-For: {forwarded_for}")
+        
+        # ブロックリストのIPをチェック（パブリックIPとプライベートIP両方）
+        if client_ip in self.blocked_ips or real_ip in self.blocked_ips:
+            self.logger.warning(f"🚫 IP Blocked: {real_ip} (via {client_ip})")
             return Response("Access Denied", status_code=403)
         
         # AIボット・クローラーのUser-Agentをチェック
         if any(pattern in user_agent for pattern in self.ai_bot_patterns):
-            print(f"🤖 AI Bot blocked: {client_ip} -> {user_agent}")
+            self.logger.warning(f"🤖 AI Bot blocked: {real_ip} -> {user_agent}")
             return Response("AI crawling not allowed", status_code=403)
         
         # 悪意のあるパスパターンをチェック
-        path = request.url.path
         if any(pattern in path.lower() for pattern in self.malicious_patterns):
-            print(f"🚨 Malicious request blocked: {client_ip} -> {path}")
+            self.logger.warning(f"🚨 Malicious request blocked: {real_ip} -> {path}")
             return Response("Not Found", status_code=404)
         
+        # 正常リクエストの場合
         response = await call_next(request)
+        self.logger.info(f"✅ Request OK: {path} -> {response.status_code}")
         return response
 
 
@@ -134,32 +172,62 @@ class WebSocketServer:
         # StaticFilesの代わりにカスタムエンドポイントを使用
         @self.app.get("/live2d-models/{file_path:path}")
         async def serve_live2d_file(file_path: str):
-            """Live2Dファイルを提供するエンドポイント"""
+            """Live2Dファイルを提供するエンドポイント（パス正規化・詳細エラーログ付き）"""
             import mimetypes
             from fastapi.responses import FileResponse
-            
-            full_path = os.path.join(live2d_model_path, file_path)
-            print(f"🎯 Serving Live2D file: {full_path}")
-            
-            if os.path.exists(full_path) and os.path.isfile(full_path):
-                # MIMEタイプを自動検出
-                mime_type, _ = mimetypes.guess_type(full_path)
-                if mime_type is None:
-                    if file_path.endswith('.json'):
-                        mime_type = 'application/json'
-                    elif file_path.endswith('.moc3'):
-                        mime_type = 'application/octet-stream'
-                    else:
-                        mime_type = 'application/octet-stream'
-                
-                return FileResponse(
-                    path=full_path,
-                    media_type=mime_type,
-                    headers={"Access-Control-Allow-Origin": "*"}
-                )
-            else:
+            import logging
+            logger = logging.getLogger("SecurityMiddleware")
+            try:
+                # パス正規化とディレクトリトラバーサル防止
+                full_path = os.path.abspath(os.path.join(live2d_model_path, file_path))
+                base_path = os.path.abspath(live2d_model_path)
+                if not full_path.startswith(base_path):
+                    msg403 = f"Directory traversal attempt: {file_path} -> {full_path}"
+                    print(msg403)
+                    logger.warning(msg403)
+                    from fastapi import HTTPException
+                    raise HTTPException(status_code=403, detail="Forbidden")
+                # 必要最小限のリクエストログ
+                msg = f"Live2D request: {file_path} -> {full_path}"
+                print(msg)
+                logger.info(msg)
+                if os.path.exists(full_path) and os.path.isfile(full_path):
+                    mime_type, _ = mimetypes.guess_type(full_path)
+                    if mime_type is None:
+                        if file_path.endswith('.json'):
+                            mime_type = 'application/json'
+                        elif file_path.endswith('.moc3'):
+                            mime_type = 'application/octet-stream'
+                        elif file_path.endswith('.png'):
+                            mime_type = 'image/png'
+                        else:
+                            mime_type = 'application/octet-stream'
+                    return FileResponse(
+                        path=full_path,
+                        media_type=mime_type,
+                        headers={"Access-Control-Allow-Origin": "*"}
+                    )
+                else:
+                    # 404時のみログ
+                    msg404 = f"Live2D file not found: {full_path}"
+                    print(msg404)
+                    logger.warning(msg404)
+                    from fastapi import HTTPException
+                    raise HTTPException(
+                        status_code=404, 
+                        detail=f"File not found: {full_path}"
+                    )
+            except Exception as e:
+                import traceback
+                tb = traceback.format_exc()
+                msgerr = f"Live2D error: {str(e)} ({type(e).__name__})\n{tb}"
+                print(msgerr)
+                logger.error(msgerr)
                 from fastapi import HTTPException
-                raise HTTPException(status_code=404, detail="File not found")
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Internal server error: {str(e)}"
+                )
         
         print(f"✅ Custom endpoint for /live2d-models -> {live2d_model_path}")
         print("🎯 Custom endpoint defined successfully!")

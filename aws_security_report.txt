@@ -1,0 +1,76 @@
+Subject: Re: AWS Trust & Safety - Security Incident Report - IP 10.0.0.57
+
+Dear AWS Trust & Safety Team,
+
+Thank you for your prompt response regarding the abusive activity from IP 10.0.0.57.
+
+INCIDENT SUMMARY:
+================
+
+Our AWS EC2 instance (10.0.0.59) behind an Application Load Balancer (ALB) has been experiencing malicious scanning activities from internal IP 10.0.0.57, which appears to be spoofing ELB health checker requests.
+
+TARGET INFRASTRUCTURE:
+======================
+- EC2 Instance: 10.0.0.59 (private IP)
+- Public IP: 54.248.168.78
+- Application Load Balancer in front of EC2
+- CloudFlare CDN integration
+
+ATTACK PATTERNS OBSERVED:
+========================
+The malicious requests from 10.0.0.57 target the following vulnerable paths:
+- /.well-known/
+- /wp-admin/
+- /wp-content/
+- /admin.php
+- /shell.php
+- /filemanager.php
+- /xmlrpc.php
+
+SECURITY MEASURES IMPLEMENTED:
+=============================
+1. IP blocking for 10.0.0.57 at application level
+2. Malicious path pattern detection and blocking
+3. Enhanced logging with timestamps
+4. Real-time security monitoring
+
+LIMITATION REGARDING PUBLIC IP IDENTIFICATION:
+==============================================
+As you correctly noted, 10.0.0.57 is a private IP address within AWS infrastructure. We require access to ALB access logs or AWS CloudTrail logs to identify the actual public IP address of the attacker.
+
+REQUEST FOR AWS ASSISTANCE:
+===========================
+1. Please provide ALB access logs for our load balancer to identify the public source IP
+2. CloudTrail logs showing the source of requests to 10.0.0.57
+3. Any internal AWS security investigation results
+
+SAMPLE LOG FORMAT (Enhanced with Timestamps):
+============================================
+[2025-08-07 23:45:12.123] 🚨 Malicious request blocked: [PUBLIC_IP_NEEDED] -> /.well-known/
+[2025-08-07 23:45:13.456] 🚨 Malicious request blocked: [PUBLIC_IP_NEEDED] -> /wp-admin/
+[2025-08-07 23:45:14.789] 🚨 Malicious request blocked: [PUBLIC_IP_NEEDED] -> /admin.php
+
+IMMEDIATE ACTIONS TAKEN:
+=======================
+1. Blocked 10.0.0.57 at application security middleware level
+2. Implemented real-time logging with complete timestamps
+3. Enhanced monitoring for similar attack patterns
+4. Prepared this detailed incident report
+
+We are ready to provide additional logs once we can identify the actual public IP address through ALB logs. Please advise on how to access the ALB access logs for our infrastructure.
+
+The attacks are ongoing and we need urgent assistance to identify the true source IP for permanent blocking at network level.
+
+Best regards,
+[Your Name]
+[Your Organization]
+
+Infrastructure Details:
+- AWS Region: ap-northeast-1
+- EC2 Instance ID: [INSTANCE_ID_NEEDED]
+- ALB ARN: [ALB_ARN_NEEDED]
+- Account ID: [ACCOUNT_ID_NEEDED]
+
+---
+This report contains no attachments and all information is provided as plain text as requested.
+For security verification, this incident affects public IP 54.248.168.78 accessed through CloudFlare CDN.
