@@ -12,15 +12,16 @@ from src.open_llm_vtuber.config_manager import Config, read_yaml, validate_confi
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from src.open_llm_vtuber.live2d_mount_guard import Live2DGuard
+from src.open_llm_vtuber.config_manager import read_yaml, validate_config
+cfg = validate_config(read_yaml("conf.yaml"))
+import yaml
+with open("conf.yaml", "r") as f:
+    conf_dict = yaml.safe_load(f)
 app = FastAPI()
 
-
-
 port = getattr(cfg.system_config, "port", 12393)
-live2d_dir = getattr(cfg.frontend, "live2d_model_path",
-                     "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models")
+live2d_dir = conf_dict.get("frontend", {}).get("live2d_model_path", "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models")
 model = getattr(cfg.character_config, "live2d_model_name", "shizuku-local")
-
 guard = Live2DGuard(app, mount_path="/live2d-models", base_dir=live2d_dir, model_name=model)
 
 @app.on_event("startup")
