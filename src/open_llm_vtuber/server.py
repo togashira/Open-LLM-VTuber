@@ -4,7 +4,7 @@ import shutil
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -13,6 +13,9 @@ from starlette.responses import Response
 from .routes import init_client_ws_route, init_webtool_routes
 from .service_context import ServiceContext
 from .config_manager.utils import Config
+from starlette.middleware.base import BaseHTTPMiddleware
+import time
+
 
 
 class SecurityMiddleware(BaseHTTPMiddleware):
@@ -95,6 +98,23 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         self.logger.info(f"✅ Request OK: {path} -> {response.status_code}")
         return response
 
+class UserRateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, max_requests=3, period=1):
+        super().__init__(app)
+        self.max_requests = max_requests
+        self.period = period
+        self.user_requests = {}
+
+    async def dispatch(self, request: Request, call_next):
+        user_id = request.client.host  # IPアドレス単位。認証ユーザーIDでもOK
+        now = time.time()
+        reqs = self.user_requests.get(user_id, [])
+        reqs = [t for t in reqs if now - t < self.period]
+        if len(reqs) >= self.max_requests:
+            raise HTTPException(status_code=429, detail="Too Many Requests (per user)")
+        reqs.append(now)
+        self.user_requests[user_id] = reqs
+        return await call_next(request)
 
 class CustomStaticFiles(StaticFiles):
     async def get_response(self, path, scope):
@@ -118,6 +138,8 @@ class WebSocketServer:
 
         # セキュリティミドルウェアを最初に追加
         self.app.add_middleware(SecurityMiddleware)
+        # ★ここで追加
+        self.app.add_middleware(UserRateLimitMiddleware, max_requests=3, period=1)
 
         # Add CORS
         self.app.add_middleware(

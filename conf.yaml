@@ -86,7 +86,7 @@
             provider: 'ollama'
             config:
           #            model: 'llama3.1:latest'
-              model: 'qwen2:0.5b'
+              model: 'phi3:mini'
               temperature: 0
               max_tokens: 8000
               ollama_base_url: 'http://localhost:11434'
@@ -121,7 +121,7 @@
           llm_api_key: 'somethingelse'
           organization_id: 'org_eternity'
           project_id: 'project_glass'
-          model: 'qwen2:0.5b'
+          model: 'phi3:mini'
           temperature: 1.0 # 0～2の値
           interrupt_method: 'user'
           # 割り込み信号のプロンプト挿入方法。providerがシステムプロンプト挿入対応なら'system'、それ以外は'user'。通常変更不要
@@ -146,7 +146,7 @@
 
         openai_llm:
           llm_api_key: 'API-KEY'
-          model: 'gpt-4o'
+          model: 'gpt-4o-mini'
           temperature: 1.0 # 0～2の値
           # llm_api_key: 'Your Open AI API key'
           # model: 'gpt-4o'

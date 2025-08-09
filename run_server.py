@@ -11,7 +11,22 @@ from src.open_llm_vtuber.server import WebSocketServer
 from src.open_llm_vtuber.config_manager import Config, read_yaml, validate_config
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from src.open_llm_vtuber.live2d_mount_guard import Live2DGuard
 app = FastAPI()
+
+
+
+port = getattr(cfg.system_config, "port", 12393)
+live2d_dir = getattr(cfg.frontend, "live2d_model_path",
+                     "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models")
+model = getattr(cfg.character_config, "live2d_model_name", "shizuku-local")
+
+guard = Live2DGuard(app, mount_path="/live2d-models", base_dir=live2d_dir, model_name=model)
+
+@app.on_event("startup")
+async def _start_live2d_guard():
+    guard.start_watch(port=port, interval_sec=60.0)  # 60秒毎に健全性チェック
+
 
 @app.get("/")
 async def root():
