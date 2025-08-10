@@ -15,14 +15,15 @@ from .service_context import ServiceContext
 from .config_manager.utils import Config
 from starlette.middleware.base import BaseHTTPMiddleware
 import time
-
+from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class SecurityMiddleware(BaseHTTPMiddleware):
     """IP制限とセキュリティスキャン対策のミドルウェア"""
     
     def __init__(self, app, allowed_ips=None, blocked_ips=None):
-        super().__init__(app)
+import time
+from datetime import datetime
         self.allowed_ips = allowed_ips or []
         # プライベートIPとパブリックIP両方をブロック
         self.blocked_ips = blocked_ips or [
@@ -71,7 +72,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         
         # X-Forwarded-For ヘッダーから実際のパブリックIPを取得
         forwarded_for = request.headers.get("x-forwarded-for", "")
-        real_ip = forwarded_for.split(',')[0].strip() if forwarded_for else client_ip
+    # timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         
         # デバッグログ: 全リクエストを記録（タイムスタンプ付き）
         self.logger.info(f"🔍 Request: {real_ip} (via {client_ip}) -> {path} (UA: {user_agent[:50]}...)")

@@ -3,15 +3,11 @@ import sys
 import atexit
 import argparse
 from pathlib import Path
-import tomli
-import uvicorn
-from loguru import logger
-from upgrade import sync_user_config, select_language
-from src.open_llm_vtuber.server import WebSocketServer
 from src.open_llm_vtuber.config_manager import Config, read_yaml, validate_config
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from src.open_llm_vtuber.live2d_mount_guard import Live2DGuard
+import os
+from src.open_llm_vtuber.config_manager.config_loader import read_yaml, validate_config
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 from src.open_llm_vtuber.config_manager import read_yaml, validate_config
 cfg = validate_config(read_yaml("conf.yaml"))
 import yaml

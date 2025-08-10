@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-import os, asyncio, typing as t
+import os
+import asyncio
 from fastapi import FastAPI
 from starlette.staticfiles import StaticFiles
 import contextlib
