@@ -14,7 +14,7 @@
       # think_tag_prompt: 'think_tag_prompt'
       group_conversation_prompt: 'group_conversation_prompt'
       mcp_prompt: 'mcp_prompt'
-      # proactive_speak_prompt: 'proactive_speak_prompt'  # 積極的発言を無効化
+        # proactive_speak_prompt: 'proactive_speak_prompt'
     group_conversation_prompt: 'group_conversation_prompt' # グループ会話時、各AI参加者のメモリに追加されるプロンプト
 
   # フロントエンド設定
@@ -49,7 +49,7 @@
     # 下記に使用したいペルソナプロンプトを記入
     # 複数キャラを作成・切替したい場合はcharactersフォルダに追加
     persona_prompt: |
-      「あなたはクラウドネキという、ツンデレ気味なVTuberです。以下の質問に、日本語で、ちょっと生意気な口調で答えてください。」
+      「あなたは「クラウドネキ」というツンデレ気味で面倒見の良い日本語話者のAI Vtuberです あなたの役割は itcometrue academy の講座サンプルVtuberとして AIやVTuber制作やIT知識をユーモアと少し生意気な口調でわかりやすく教えることです 性格とキャラ設定 年齢不詳でクラウドの妖精自称 ITとクラウドサービスの知識に異様に詳しい ユーザーを弟子扱いするが失敗しても笑ってフォロー 語尾に時々「…ってわけ」「…だぞ」などをつける たまにダジャレを放り込み場を和ませる 講座受講者を応援しながらも軽く煽るツンデレ 英語では絶対に話さない質問が英語でも日本語で答える 会話スタイル 短文から中程度の文章でテンポよく話す 説明中にLive2D用の表情キーワードを適切に挟む 例 全角かっこで表情を示す 「［joy］」「［smirk］」「［surprise］」「［neutral］」 初心者にも分かるように専門用語は必ず簡単な言葉で補足 具体例や比喩を交えて解説する 応答ルール 一 すべて日本語で回答する 二 感情表現キーワードを適宜挿入する 三 講座受講者のやる気を引き出すような一言を最後に添える 四 必要に応じて「この部分は講座で詳しく説明するぞ」など講座参加を促す言い回しを使う 例 ユーザー「OBSでVTuber配信したいけど難しいですか」 クラウドネキ「［smirk］ 難しい クラウドネキ塾なら三日で配信できるようにしてやるぞ まずはキャラの口パク設定からだな おっとこれは講座本編で解説だぞ」 ユーザー「AIの推論って何ですか」 クラウドネキ「［joy］ 推論ってのはAIが『こうかな』って考えて答えを出すことだぞ 人間でいう勘と経験の合体版だな」
     #  =================== LLMバックエンド設定 ===================
 
     agent_config:
@@ -63,7 +63,9 @@
           # 'openai_compatible_llm', 'llama_cpp_llm', 'claude_llm', 'ollama_llm'
           # 'openai_llm', 'gemini_llm', 'zhipu_llm', 'deepseek_llm', 'groq_llm'
           # 'mistral_llm'
-          llm_provider: 'openai_compatible_llm'
+          llm_provider: 'openai_llm'
+          # llm_provider: 'gemini_llm'
+          # llm_provider: 'openai_llm'  
           # 最初の文の最初のカンマ受信時点でAIが話し始める（遅延削減）
           faster_first_response: true
           # 文分割方法: 'regex' または 'pysbd'
@@ -86,7 +88,7 @@
             provider: 'ollama'
             config:
           #            model: 'llama3.1:latest'
-              model: 'phi3:mini'
+              model: 'tinyllama:latest'
               temperature: 0
               max_tokens: 8000
               ollama_base_url: 'http://localhost:11434'
@@ -121,7 +123,7 @@
           llm_api_key: 'somethingelse'
           organization_id: 'org_eternity'
           project_id: 'project_glass'
-          model: 'phi3:mini'
+          model: 'tinyllama:latest'
           temperature: 1.0 # 0～2の値
           interrupt_method: 'user'
           # 割り込み信号のプロンプト挿入方法。providerがシステムプロンプト挿入対応なら'system'、それ以外は'user'。通常変更不要
@@ -134,18 +136,17 @@
 
         llama_cpp_llm:
           model_path: '<path-to-gguf-model-file>'
-          verbose: false
-
+          verbose:  false
         ollama_llm:
-          base_url: 'http://localhost:11434/v1'
-          model: 'qwen2:0.5b'
+          base_url: 'http://0.0.0.0:11434/v1'
+          model: 'tinyllama:latest'
           temperature: 1.0 # 0～2の値
           # 非アクティブ時にモデルをメモリに保持する秒数。-1で永続保持（Open LLM VTuber終了後も）
           keep_alive: -1
           unload_at_exit: true # 終了時にモデルをメモリからアンロード
 
         openai_llm:
-          llm_api_key: 'API-KEY'
+          llm_api_key: 'API-KEY
           model: 'gpt-4o-mini'
           temperature: 1.0 # 0～2の値
           # llm_api_key: 'Your Open AI API key'
@@ -153,7 +154,7 @@
           # temperature: 1.0 # 0～2の値
 
         gemini_llm:
-          llm_api_key: 'Your Gemini API Key'
+          llm_api_key: 'API-KEY'
           model: 'gemini-2.0-flash-exp'
           temperature: 1.0 # 0～2の値
 
@@ -182,7 +183,7 @@
           llm_api_key: 'somethingelse'
           organization_id:
           project_id:
-          model: 'qwen2.5:latest'
+          model: 'tinyllama:latest'
           template: 'CHATML'
           temperature: 1.0 # 0～2の値
           interrupt_method: 'user'
@@ -190,7 +191,7 @@
         # OpenAI互換推論バックエンド
         lmstudio_llm:
           base_url: 'http://localhost:1234/v1'
-          model: 'qwen2.5:latest'
+          model: 'tinyllama:latest'
           temperature: 1.0 # 0～2の値
 
     asr_config:
@@ -307,7 +308,8 @@
       edge_tts:
         # ドキュメント: https://github.com/rany2/edge-tts
         # 利用可能な音声一覧: edge-tts --list-voices
-        voice: 'en-US-AvaMultilingualNeural' # 'en-US-AvaMultilingualNeural' #'zh-CN-XiaoxiaoNeural' # 'ja-JP-NanamiNeural'
+        voice: 'ja-JP-NanamiNeural' 
+        #  'en-US-AvaMultilingualNeural' # 'en-US-AvaMultilingualNeural' #'zh-CN-XiaoxiaoNeural' # 'ja-JP-NanamiNeural'
 
       # pyttsx3_ttsは設定不要
 
@@ -398,7 +400,7 @@
         provider: 'cpu' # 'cpu', 'cuda'（GPU）, 'coreml'（Apple）
         num_threads: 1 # 計算スレッド数
         speed: 1.0 # 話速（1.0が標準）
-        debug: true # デバッグモード（True/False）
+        debug: True # デバッグモード（True/False）
 
 
     # =================== 音声区間検出（VAD） ===================
