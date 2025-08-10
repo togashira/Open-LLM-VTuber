@@ -19,13 +19,13 @@
 
   # フロントエンド設定
   frontend:
-    asset_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/assets"
-    live2d_model_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models"
+  asset_path: "assets"
+  live2d_model_path: "live2d-models"
     live2d_models:
       - name: mao_pro
-        path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/mao_pro"
+  path: "live2d-models/mao_pro"
       - name: shizuku-local
-        path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/shizuku"
+  path: "live2d-models/shizuku"
 
   # デフォルトキャラクターの設定
   character_config:
@@ -186,6 +186,7 @@
           model: 'tinyllama:latest'
           template: 'CHATML'
           temperature: 1.0 # 0～2の値
+          
           interrupt_method: 'user'
 
         # OpenAI互換推論バックエンド
@@ -389,12 +390,12 @@
       # TTSモデルダウンロード: https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
       # config_altsに他例あり
       sherpa_onnx_tts:
-        vits_model: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/model.onnx' # VITSモデルファイルのパス
-        vits_lexicon: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/lexicon.txt' # 辞書ファイルのパス（任意）
-        vits_tokens: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/tokens.txt' # tokensファイルのパス
+  vits_model: 'models/tts-models/vits-melo-tts-zh_en/model.onnx' # VITSモデルファイルのパス
+  vits_lexicon: 'models/tts-models/vits-melo-tts-zh_en/lexicon.txt' # 辞書ファイルのパス（任意）
+  vits_tokens: 'models/tts-models/vits-melo-tts-zh_en/tokens.txt' # tokensファイルのパス
         vits_data_dir: '' # '/path/to/tts-models/vits-piper-en_GB-cori-high/espeak-ng-data'  # espeak-ngデータのパス（任意）
-        vits_dict_dir: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/dict' # Jieba辞書のパス（中国語用、任意）
-        tts_rule_fsts: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/number.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/phone.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/date.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/new_heteronym.fst' # ルールFSTsファイルのパス（任意）
+  vits_dict_dir: 'models/tts-models/vits-melo-tts-zh_en/dict' # Jieba辞書のパス（中国語用、任意）
+  tts_rule_fsts: 'models/tts-models/vits-melo-tts-zh_en/number.fst,models/tts-models/vits-melo-tts-zh_en/phone.fst,models/tts-models/vits-melo-tts-zh_en/date.fst,models/tts-models/vits-melo-tts-zh_en/new_heteronym.fst' # ルールFSTsファイルのパス（任意）
         max_num_sentences: 2 # バッチあたり最大文数（-1で全て）
         sid: 0 # 話者ID（マルチスピーカーモデル用）
         provider: 'cpu' # 'cpu', 'cuda'（GPU）, 'coreml'（Apple）

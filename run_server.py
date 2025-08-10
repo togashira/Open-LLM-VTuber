@@ -20,7 +20,7 @@ with open("conf.yaml", "r") as f:
 app = FastAPI()
 
 port = getattr(cfg.system_config, "port", 12393)
-live2d_dir = conf_dict.get("frontend", {}).get("live2d_model_path", "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models")
+live2d_dir = conf_dict.get("frontend", {}).get("live2d_model_path", "live2d-models")
 model = getattr(cfg.character_config, "live2d_model_name", "shizuku-local")
 guard = Live2DGuard(app, mount_path="/live2d-models", base_dir=live2d_dir, model_name=model)
 
@@ -34,7 +34,7 @@ async def root():
   return {"status": "healthy"}  # ヘルスチェック用200レスポンス
 
 # modelURL固定 2025/7/21
-app.mount("/live2d-models", StaticFiles(directory="/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models", html=True), name="live2d")
+app.mount("/live2d-models", StaticFiles(directory=live2d_dir, html=True), name="live2d")
 #ここまで
 
 os.environ["HF_HOME"] = str(Path(__file__).parent / "models")
