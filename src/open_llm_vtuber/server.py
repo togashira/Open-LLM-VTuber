@@ -229,7 +229,12 @@ class WebSocketServer:
         self.app.mount(
             "/cache",
             StaticFiles(directory="cache"),
-            name="cache",
+                        print(f"[Live2D] live2d_model_dir: {live2d_model_dir}")
+                        self.app.mount(
+                            "/live2d-models",
+                            CustomStaticFiles(directory=live2d_model_dir),
+                            name="live2d_models",
+                        )
         )
 
 
