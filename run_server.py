@@ -3,35 +3,13 @@ import sys
 import atexit
 import argparse
 from pathlib import Path
-from src.open_llm_vtuber.config_manager import Config, read_yaml, validate_config
-import os
-from src.open_llm_vtuber.config_manager.config_loader import read_yaml, validate_config
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-from src.open_llm_vtuber.config_manager import read_yaml, validate_config
-cfg = validate_config(read_yaml("conf.yaml"))
-import yaml
-with open("conf.yaml", "r") as f:
-    conf_dict = yaml.safe_load(f)
-app = FastAPI()
-
-port = getattr(cfg.system_config, "port", 12393)
-live2d_dir = conf_dict.get("frontend", {}).get("live2d_model_path", "live2d-models")
-model = getattr(cfg.character_config, "live2d_model_name", "shizuku-local")
-guard = Live2DGuard(app, mount_path="/live2d-models", base_dir=live2d_dir, model_name=model)
-
-@app.on_event("startup")
-async def _start_live2d_guard():
-    guard.start_watch(port=port, interval_sec=60.0)  # 60秒毎に健全性チェック
-
-
-@app.get("/")
-async def root():
-  return {"status": "healthy"}  # ヘルスチェック用200レスポンス
-
-# modelURL固定 2025/7/21
-app.mount("/live2d-models", StaticFiles(directory=live2d_dir, html=True), name="live2d")
-#ここまで
+from src.open_llm_vtuber.config_manager.utils import read_yaml, validate_config
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from src.open_llm_vtuber.server import WebSocketServer
+from loguru import logger
+import uvicorn
+import tomli
 
 os.environ["HF_HOME"] = str(Path(__file__).parent / "models")
 os.environ["MODELSCOPE_CACHE"] = str(Path(__file__).parent / "models")
@@ -78,11 +56,7 @@ def parse_args():
 def run(console_log_level: str):
     init_logger(console_log_level)
     logger.info(f"Open-LLM-VTuber, version v{get_version()}")
-    # Sync user config with default config
-    try:
-        sync_user_config(logger=logger, lang=select_language())
-    except Exception as e:
-        logger.error(f"Error syncing user config: {e}")
+    # Sync user config with default config（不要なため削除）
 
     atexit.register(WebSocketServer.clean_cache)
 

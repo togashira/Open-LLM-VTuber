@@ -24,3 +24,8 @@ class Config(I18nMixin, BaseModel):
             en="Character configuration settings", zh="角色配置设置"
         ),
     }
+
+    # デバッグ: カレントディレクトリとファイルパス
+    import os
+    print(f"[DEBUG][Config class] cwd: {os.getcwd()}")
+    print(f"[DEBUG][Config class] __file__: {__file__}")

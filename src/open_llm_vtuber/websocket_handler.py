@@ -73,6 +73,11 @@ class WebSocketHandler:
         # Message handlers mapping
         self._message_handlers = self._init_message_handlers()
 
+    # デバッグ: カレントディレクトリとファイルパス
+    import os
+    print(f"[DEBUG][WebSocketHandler.__init__] cwd: {os.getcwd()}")
+    print(f"[DEBUG][WebSocketHandler.__init__] __file__: {__file__}")
+
     def _init_message_handlers(self) -> Dict[str, Callable]:
         """Initialize message type to handler mapping"""
         return {
@@ -504,7 +509,7 @@ class WebSocketHandler:
         """Handle fetching available configurations"""
         context = self.client_contexts[client_uid]
         config_files = scan_config_alts_directory(context.system_config.config_alts_dir)
-        print(f"[DEBUG] config-files to frontend: {config_files}")
+        print(f"[DEBUG] config-files to frontend: {config_files}") #DEBUGテスト
         await websocket.send_text(
             json.dumps({"type": "config-files", "configs": config_files})
         )
