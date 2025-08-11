@@ -165,7 +165,7 @@ class WebSocketServer:
         # セキュリティミドルウェアを最初に追加
         self.app.add_middleware(SecurityMiddleware)
         # ★ここで追加
-    self.app.add_middleware(UserRateLimitMiddleware, max_requests=10, period=1)
+        self.app.add_middleware(UserRateLimitMiddleware, max_requests=10, period=1)
 
         # Add CORS
         self.app.add_middleware(
