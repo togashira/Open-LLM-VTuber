@@ -229,13 +229,29 @@ class WebSocketServer:
         self.app.mount(
             "/cache",
             StaticFiles(directory="cache"),
-                        print(f"[Live2D] live2d_model_dir: {live2d_model_dir}")
-                        self.app.mount(
-                            "/live2d-models",
-                            CustomStaticFiles(directory=live2d_model_dir),
-                            name="live2d_models",
-                        )
+            name="cache",
         )
+
+        # Mount static files（live2d-modelsはconfigからパス取得）
+        frontend_config = getattr(config, "frontend", None)
+        if isinstance(frontend_config, dict):
+            base_dir = frontend_config.get("base_dir", "")
+            live2d_model_path = frontend_config.get("live2d_model_path", "live2d-models")
+        elif hasattr(frontend_config, "base_dir"):
+            base_dir = getattr(frontend_config, "base_dir", "")
+            live2d_model_path = getattr(frontend_config, "live2d_model_path", "live2d-models")
+        else:
+            base_dir = "."
+            live2d_model_path = "live2d-models"
+
+        live2d_model_dir = os.path.abspath(os.path.join(base_dir, live2d_model_path))
+        print(f"✅ Custom endpoint for /live2d-models -> {live2d_model_dir}")
+        self.app.mount(
+            "/live2d-models",
+            CustomStaticFiles(directory=live2d_model_dir),
+            name="live2d_models",
+        )
+        print("🎯 Custom endpoint defined successfully!")
 
 
         # Mount static files（live2d-modelsはconfigからパス取得）
