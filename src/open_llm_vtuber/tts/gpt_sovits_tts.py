@@ -52,10 +52,22 @@ class TTSEngine(TTSInterface):
 
         # Check if the request was successful
         if response.status_code == 200:
-            # Save the audio content to a file
-            with open(file_name, "wb") as audio_file:
-                audio_file.write(response.content)
-            return file_name
+            # Save the audio content to a file (IOリトライ付き)
+            import time
+            max_retries = 3
+            delay = 0.5
+            for attempt in range(max_retries):
+                try:
+                    with open(file_name, "wb") as audio_file:
+                        audio_file.write(response.content)
+                    return file_name
+                except (OSError, IOError) as e:
+                    if attempt < max_retries - 1:
+                        time.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"IOError on saving TTS audio file {file_name}: {e}")
+                        break
         else:
             # Handle errors or unsuccessful requests
             logger.critical(

@@ -1,39 +1,49 @@
+  # システム設定: サーバーの初期化に関する設定
 system_config:
     conf_version: 'v1.2.0'
     host: '0.0.0.0' # 他のデバイスからこのページにアクセスしたい場合は0.0.0.0を使用
     port: 12393
-    config_alts_dir: 'characters' # 代替設定用の新しいディレクトリ設定
+    # 代替設定用の新しいディレクトリ設定
+    config_alts_dir: 'characters'
+    # ペルソナプロンプトに追加されるツールプロンプト
     tool_prompts:
+      # LLMが表情制御用キーワードを含めるように、システムプロンプトの末尾に追加されます。
+      # 対応キーワードは自動的に[<insert_emomap_keys>]の位置に読み込まれます。
       live2d_expression_prompt: 'live2d_expression_prompt'
+      # think_tag_promptを有効にすると、思考出力のないLLMでも内心や行動を括弧書きで表示（音声合成なし）できます。詳細はthink_tag_prompt参照。
       # think_tag_prompt: 'think_tag_prompt'
       group_conversation_prompt: 'group_conversation_prompt'
       mcp_prompt: 'mcp_prompt'
-      # proactive_speak_prompt: 'proactive_speak_prompt'
+        # proactive_speak_prompt: 'proactive_speak_prompt'
     group_conversation_prompt: 'group_conversation_prompt' # グループ会話時、各AI参加者のメモリに追加されるプロンプト
 
+  # フロントエンド設定
 frontend:
-  base_dir: "."
-  backgrounds_path: "backgrounds"
-  avatars_path: "avatars"
-  assets_path: "assets"
-  live2d_model_path: "live2d-models" # プロジェクトの基準ディレクトリ（BaseURL）を絶対パスで指定
-  live2d_models:
-    - name: mao_pro
-      path: "mao_pro"
-        # path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/mao_pro"
-    - name: shizuku-local
-      path: "shizuku"
-        # path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/shizuku"
+    # base_dir: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber"  # ←元の絶対パス指定
+    base_dir: "."  # プロジェクトルート基準の相対パス
+    # backgrounds_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/backgrounds"  # ←元の絶対パス指定
+    backgrounds_path: "backgrounds"
+    # avatars_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/avatars"  # ←元の絶対パス指定
+    avatars_path: "avatars"
+    assets_path: "assets"
+    # live2d_model_path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models"  # ←元の絶対パス指定
+    live2d_model_path: "live2d-models"
+    live2d_models:
+      - name: mao_pro
+        # path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/mao_pro"  # ←元の絶対パス指定
+        path: "mao_pro"
+      - name: shizuku-local
+        # path: "/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/live2d-models/shizuku"  # ←元の絶対パス指定
+        path: "shizuku"
 
+  # デフォルトキャラクターの設定
 character_config:
     conf_name: 'shizuku-local' # キャラクター設定ファイル名
     conf_uid: 'shizuku-local-001' # キャラクター設定の一意識別子
     live2d_model_name: 'shizuku-local' # Live2Dモデル名。model_dict.jsonの該当名と一致させること
     character_name: 'Shizuku' # グループ会話やAIの表示名に使用
     avatar: 'shizuku.png' # アバター画像。正方形推奨。avatarsフォルダに保存。空欄の場合はキャラ名の頭文字を使用
-    human_name: 'Human' # グループ会話や人間側の表示名に使用
-    # persona_prompt など以下省略（...existing code...）
-    #  =================== LLMバックエンド設定 ===================
+    human_name: 'Human' # グループ会話や人間側の表示名に使用 
   #フロントフォルダ指定
   #character_config:
   #  conf_name: "mao_pro"
@@ -145,7 +155,7 @@ character_config:
           unload_at_exit: true # 終了時にモデルをメモリからアンロード
 
         openai_llm:
-          llm_api_key: ''
+          llm_api_key: 'API-KEY'
           model: 'gpt-4o-mini'
           temperature: 1.0 # 0～2の値
           # llm_api_key: 'Your Open AI API key'
@@ -153,7 +163,7 @@ character_config:
           # temperature: 1.0 # 0～2の値
 
         gemini_llm:
-          llm_api_key: ''
+          llm_api_key: 'API-KEY'
           model: 'gemini-2.0-flash-exp'
           temperature: 1.0 # 0～2の値
 
@@ -399,14 +409,7 @@ character_config:
           vits_dict_dir: 'models/tts-models/vits-melo-tts-zh_en/dict' # Jieba辞書のパス（中国語用、任意）
   # tts_rule_fsts: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/number.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/phone.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/date.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/new_heteronym.fst'  # ←元の絶対パス指定
           tts_rule_fsts: 'models/tts-models/vits-melo-tts-zh_en/number.fst,models/tts-models/vits-melo-tts-zh_en/phone.fst,models/tts-models/vits-melo-tts-zh_en/date.fst,models/tts-models/vits-melo-tts-zh_en/new_heteronym.fst' # ルールFSTsファイルのパス（任意）
-          max_num_sentences: 2 # バッチあたり最大文数（-1で全て）        
-        #vits_model: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/model.onnx' # VITSモデルファイルのパス
-        #vits_lexicon: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/lexicon.txt' # 辞書ファイルのパス（任意）
-        #vits_tokens: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/tokens.txt' # tokensファイルのパス
-          #vits_data_dir: '' # '/path/to/tts-models/vits-piper-en_GB-cori-high/espeak-ng-data'  # espeak-ngデータのパス（任意）
-          #vits_dict_dir: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/dict' # Jieba辞書のパス（中国語用、任意）
-          #tts_rule_fsts: '/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/number.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/phone.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/date.fst,/mnt/data/Open-LLM-VTuber/Open-LLM-VTuber/models/tts-models/vits-melo-tts-zh_en/new_heteronym.fst' # ルールFSTsファイルのパス（任意）
-          #max_num_sentences: 2 # バッチあたり最大文数（-1で全て）
+          max_num_sentences: 2 # バッチあたり最大文数（-1で全て）
           sid: 0 # 話者ID（マルチスピーカーモデル用）
           provider: 'cpu' # 'cpu', 'cuda'（GPU）, 'coreml'（Apple）
           num_threads: 1 # 計算スレッド数
@@ -476,9 +479,9 @@ character_config:
         enabled: true
         host: 0.0.0.0
         port: 12393
-          #live_config:
-          #  bilibili_live:
-          #    # 監視するBiliBiliライブのルームIDリスト
-          #    room_ids: [1991478060]
-          #    # SESSDATAクッキー値（認証リクエスト用、任意）
-          #    sessdata: ""
+live_config:
+    bilibili_live:
+      # 監視するBiliBiliライブのルームIDリスト
+      room_ids: [1991478060]
+      # SESSDATAクッキー値（認証リクエスト用、任意）
+      sessdata: ""

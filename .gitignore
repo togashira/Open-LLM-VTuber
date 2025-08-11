@@ -1,6 +1,6 @@
 # ignore the user configuration file
 conf.yaml
-
+confold.yaml
 # ignore non-default background images
 /backgrounds/*
 
