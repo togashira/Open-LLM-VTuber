@@ -117,7 +117,14 @@ class CustomStaticFiles(StaticFiles):
         import os
         print(f"[DEBUG] StaticFiles get_response: directory={self.directory}, path={path}")
         abs_path = os.path.join(self.directory, path)
+        abs_path = os.path.abspath(abs_path)
         print(f"[DEBUG] StaticFiles resolved absolute path: {abs_path}")
+        exists = os.path.exists(abs_path)
+        print(f"[DEBUG] os.path.exists({abs_path}): {exists}")
+        if os.path.isdir(os.path.dirname(abs_path)):
+            print(f"[DEBUG] os.listdir({os.path.dirname(abs_path)}): {os.listdir(os.path.dirname(abs_path))}")
+        else:
+            print(f"[DEBUG] Directory does not exist: {os.path.dirname(abs_path)}")
         response = await super().get_response(path, scope)
         if response.status_code == 404:
             print(f"[DEBUG] 404 Not Found (resolved): {abs_path}")
