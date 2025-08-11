@@ -133,8 +133,11 @@ class CustomStaticFiles(StaticFiles):
             else:
                 debug_msgs.append(f"[DEBUG] Directory does not exist: {dir_path}")
             response = await super().get_response(path, scope)
-            if response.status_code == 404:
-                debug_msgs.append(f"[DEBUG] 404 Not Found (resolved): {abs_path}")
+                # キャッシュ無効化
+                if response and hasattr(response, 'headers'):
+                    response.headers["Cache-Control"] = "no-store"
+                if response.status_code == 404:
+                    debug_msgs.append(f"[DEBUG] 404 Not Found (resolved): {abs_path}")
             return response
         except Exception as e:
             debug_msgs.append(f"[DEBUG] Exception in get_response: {e}")
@@ -162,7 +165,7 @@ class WebSocketServer:
         # セキュリティミドルウェアを最初に追加
         self.app.add_middleware(SecurityMiddleware)
         # ★ここで追加
-        self.app.add_middleware(UserRateLimitMiddleware, max_requests=3, period=1)
+    self.app.add_middleware(UserRateLimitMiddleware, max_requests=10, period=1)
 
         # Add CORS
         self.app.add_middleware(
