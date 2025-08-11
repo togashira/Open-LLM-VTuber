@@ -231,10 +231,9 @@ class WebSocketServer:
             name="cache",
         )
 
+
         # Mount static files（live2d-modelsはconfigからパス取得）
         frontend_config = getattr(config, "frontend", None)
-        live2d_model_path = "live2d-models"
-        # base_dir, live2d_model_pathを取得
         if isinstance(frontend_config, dict):
             base_dir = frontend_config.get("base_dir", "")
             live2d_model_path = frontend_config.get("live2d_model_path", "live2d-models")
@@ -245,52 +244,13 @@ class WebSocketServer:
             base_dir = "."
             live2d_model_path = "live2d-models"
 
-        # base_dir + live2d_model_path でパスを合成
-        live2d_model_dir = os.path.join(base_dir, live2d_model_path)
-        try:
-            # 追加デバッグ: config全体の型・内容をprint
-            print(f"[DEBUG] config type: {type(config)}")
-            try:
-                import pprint
-                pprint.pprint(config.__dict__ if hasattr(config, '__dict__') else config)
-            except Exception as e:
-                print(f"[DEBUG] config pprint error: {e}")
-
-            live2d_models = []
-            frontend_config = getattr(config, "frontend", None)
-            print(f"[DEBUG] frontend_config type: {type(frontend_config)} value: {frontend_config}")
-            if frontend_config is not None:
-                if isinstance(frontend_config, dict):
-                    live2d_models = frontend_config.get("live2d_models", [])
-                elif hasattr(frontend_config, "live2d_models"):
-                    live2d_models = getattr(frontend_config, "live2d_models", [])
-            print(f"[DEBUG] live2d_models type: {type(live2d_models)} value: {live2d_models}")
-            # live2d-modelsディレクトリの絶対パスを解決
-            base_dir = frontend_config.get("base_dir", ".") if isinstance(frontend_config, dict) else getattr(frontend_config, "base_dir", ".")
-            live2d_model_path = frontend_config.get("live2d_model_path", "live2d-models") if isinstance(frontend_config, dict) else getattr(frontend_config, "live2d_model_path", "live2d-models")
-            live2d_model_dir = os.path.join(base_dir, live2d_model_path)
-            live2d_model_dir = os.path.abspath(live2d_model_dir)
-            print(f"[Live2D] live2d_model_dir: {live2d_model_dir}")
-            print(f"[Live2D] Directory exists: {os.path.exists(live2d_model_dir)}")
-            if os.path.exists(live2d_model_dir):
-                print(f"[Live2D] live2d-modelsディレクトリ内: {os.listdir(live2d_model_dir)}")
-            if isinstance(live2d_models, list):
-                for m in live2d_models:
-                    model_dir = os.path.join(live2d_model_dir, m.get('path', m.get('name', '')))
-                    print(f"[Live2D] モデル '{m.get('name', m)}' のパス: {model_dir} 存在: {os.path.exists(model_dir)}")
-                if len(live2d_models) > 1:
-                    print(f"✅ Live2Dモデル複数取得OK: {[m.get('name', m) for m in live2d_models]}")
-                elif len(live2d_models) == 1:
-                    print(f"⚠️ Live2Dモデル単体のみ取得: 失敗扱い [{live2d_models[0].get('name', live2d_models[0])}]")
-                else:
-                    print("❌ Live2Dモデルが0件です")
-            else:
-                print("❌ live2d_modelsの型が不正です")
-        except Exception as e:
-            print(f"❌ Live2Dモデル取得時エラー: {e}")
-                # ...不要なインデントエラー部分を削除...
-        
-        print(f"✅ Custom endpoint for /live2d-models -> {live2d_model_path}")
+        live2d_model_dir = os.path.abspath(os.path.join(base_dir, live2d_model_path))
+        print(f"✅ Custom endpoint for /live2d-models -> {live2d_model_dir}")
+        self.app.mount(
+            "/live2d-models",
+            CustomStaticFiles(directory=live2d_model_dir),
+            name="live2d_models",
+        )
         print("🎯 Custom endpoint defined successfully!")
 
         # conf.yamlのbase_dir+backgrounds_pathから背景ディレクトリを取得
