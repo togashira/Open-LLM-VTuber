@@ -9,7 +9,6 @@ import chardet
 from loguru import logger
 
 from .main import Config
-
 T = TypeVar("T", bound=BaseModel)
 
 
@@ -125,6 +124,8 @@ def save_config(config: BaseModel, config_path: Union[str, Path]):
 
 
 def scan_config_alts_directory(config_alts_dir: str) -> list[dict]:
+    abs_config_alts_dir = os.path.abspath(config_alts_dir)
+    print(f"[DEBUG] config_alts_dir: {config_alts_dir} (abs: {abs_config_alts_dir}) (cwd: {os.getcwd()})")
     """
     Scan the config_alts directory and return a list of config information.
     Each config info contains the filename and its display name from the config.
@@ -153,7 +154,7 @@ def scan_config_alts_directory(config_alts_dir: str) -> list[dict]:
     )
 
     # Scan other configs
-    for root, _, files in os.walk(config_alts_dir):
+    for root, _, files in os.walk(abs_config_alts_dir):
         for file in files:
             if file.endswith(".yaml"):
                 config: dict = read_yaml(os.path.join(root, file))

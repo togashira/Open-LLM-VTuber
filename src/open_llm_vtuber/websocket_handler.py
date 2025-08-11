@@ -504,6 +504,7 @@ class WebSocketHandler:
         """Handle fetching available configurations"""
         context = self.client_contexts[client_uid]
         config_files = scan_config_alts_directory(context.system_config.config_alts_dir)
+        print(f"[DEBUG] config-files to frontend: {config_files}")
         await websocket.send_text(
             json.dumps({"type": "config-files", "configs": config_files})
         )

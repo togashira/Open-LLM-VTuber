@@ -53,31 +53,51 @@ class Live2dModel:
         # example: `"[fear], [anger], [disgust], [sadness], [joy], [neutral], [surprise]"`
 
     def _load_file_content(self, file_path: str) -> str:
-        """Load the content of a file with robust encoding handling."""
-        # Try common encodings first
+        """Load the content of a file with robust encoding handling and IO retry."""
+        import time
         encodings = ["utf-8", "utf-8-sig", "gbk", "gb2312", "ascii"]
+        max_retries = 3
+        delay = 0.5
 
+        # Try common encodings first, with IO retry
         for encoding in encodings:
-            try:
-                with open(file_path, "r", encoding=encoding) as file:
-                    return file.read()
-            except UnicodeDecodeError:
-                continue
-
-        # If all common encodings fail, try to detect encoding
-        try:
-            with open(file_path, "rb") as file:
-                raw_data = file.read()
-            detected = chardet.detect(raw_data)
-            detected_encoding = detected["encoding"]
-
-            if detected_encoding:
+            for attempt in range(max_retries):
                 try:
-                    return raw_data.decode(detected_encoding)
+                    with open(file_path, "r", encoding=encoding) as file:
+                        return file.read()
                 except UnicodeDecodeError:
-                    pass
-        except Exception as e:
-            logger.error(f"Error detecting encoding for {file_path}: {e}")
+                    break  # 次のencodingへ
+                except (OSError, IOError) as e:
+                    if attempt < max_retries - 1:
+                        time.sleep(delay)
+                        continue
+                    else:
+                        logger.error(f"IOError on open/read {file_path} (encoding={encoding}): {e}")
+                        break  # 次のencodingへ
+
+        # If all common encodings fail, try to detect encoding (with IO retry)
+        for attempt in range(max_retries):
+            try:
+                with open(file_path, "rb") as file:
+                    raw_data = file.read()
+                detected = chardet.detect(raw_data)
+                detected_encoding = detected["encoding"]
+
+                if detected_encoding:
+                    try:
+                        return raw_data.decode(detected_encoding)
+                    except UnicodeDecodeError:
+                        pass
+            except (OSError, IOError) as e:
+                if attempt < max_retries - 1:
+                    time.sleep(delay)
+                    continue
+                else:
+                    logger.error(f"IOError on open/read (binary) {file_path}: {e}")
+                    break
+            except Exception as e:
+                logger.error(f"Error detecting encoding for {file_path}: {e}")
+                break
 
         raise UnicodeError(f"Failed to decode {file_path} with any encoding")
 
