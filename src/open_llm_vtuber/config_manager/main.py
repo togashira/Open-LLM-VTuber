@@ -1,4 +1,8 @@
+
 # config_manager/main.py
+import os
+print(f"[DEBUG][Config class] cwd: {os.getcwd()}")
+print(f"[DEBUG][Config class] __file__: {__file__}")
 from pydantic import BaseModel, Field
 from typing import Dict, ClassVar
 
@@ -25,7 +29,4 @@ class Config(I18nMixin, BaseModel):
         ),
     }
 
-    # デバッグ: カレントディレクトリとファイルパス
-    import os
-    print(f"[DEBUG][Config class] cwd: {os.getcwd()}")
-    print(f"[DEBUG][Config class] __file__: {__file__}")
+    # デバッグ: カレントディレクトリとファイルパス（クラス外に移動済み）
