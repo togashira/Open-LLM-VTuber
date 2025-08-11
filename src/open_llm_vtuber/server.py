@@ -115,20 +115,32 @@ class UserRateLimitMiddleware(BaseHTTPMiddleware):
 class CustomStaticFiles(StaticFiles):
     async def get_response(self, path, scope):
         import os
-        print(f"[DEBUG] StaticFiles get_response: directory={self.directory}, path={path}")
-        abs_path = os.path.join(self.directory, path)
-        abs_path = os.path.abspath(abs_path)
-        print(f"[DEBUG] StaticFiles resolved absolute path: {abs_path}")
-        exists = os.path.exists(abs_path)
-        print(f"[DEBUG] os.path.exists({abs_path}): {exists}")
-        if os.path.isdir(os.path.dirname(abs_path)):
-            print(f"[DEBUG] os.listdir({os.path.dirname(abs_path)}): {os.listdir(os.path.dirname(abs_path))}")
-        else:
-            print(f"[DEBUG] Directory does not exist: {os.path.dirname(abs_path)}")
-        response = await super().get_response(path, scope)
-        if response.status_code == 404:
-            print(f"[DEBUG] 404 Not Found (resolved): {abs_path}")
-        return response
+        debug_msgs = []
+        try:
+            debug_msgs.append(f"[DEBUG] StaticFiles get_response: directory={self.directory}, path={path}")
+            abs_path = os.path.join(self.directory, path)
+            abs_path = os.path.abspath(abs_path)
+            debug_msgs.append(f"[DEBUG] StaticFiles resolved absolute path: {abs_path}")
+            exists = os.path.exists(abs_path)
+            debug_msgs.append(f"[DEBUG] os.path.exists({abs_path}): {exists}")
+            dir_path = os.path.dirname(abs_path)
+            if os.path.isdir(dir_path):
+                try:
+                    debug_msgs.append(f"[DEBUG] os.listdir({dir_path}): {os.listdir(dir_path)}")
+                except Exception as e:
+                    debug_msgs.append(f"[DEBUG] os.listdir({dir_path}) failed: {e}")
+            else:
+                debug_msgs.append(f"[DEBUG] Directory does not exist: {dir_path}")
+            response = await super().get_response(path, scope)
+            if response.status_code == 404:
+                debug_msgs.append(f"[DEBUG] 404 Not Found (resolved): {abs_path}")
+            return response
+        except Exception as e:
+            debug_msgs.append(f"[DEBUG] Exception in get_response: {e}")
+            raise
+        finally:
+            for msg in debug_msgs:
+                print(msg)
 
 
 class AvatarStaticFiles(StaticFiles):
