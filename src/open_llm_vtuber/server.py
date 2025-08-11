@@ -116,6 +116,7 @@ class CustomStaticFiles(StaticFiles):
     async def get_response(self, path, scope):
         import os
         debug_msgs = []
+        print("\n===== [CustomStaticFiles DEBUG] called =====")
         try:
             debug_msgs.append(f"[DEBUG] StaticFiles get_response: directory={self.directory}, path={path}")
             abs_path = os.path.join(self.directory, path)
