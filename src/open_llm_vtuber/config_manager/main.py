@@ -14,7 +14,7 @@ class Config(I18nMixin, BaseModel):
 
     system_config: SystemConfig = Field(default=None, alias="system_config")
     character_config: CharacterConfig = Field(..., alias="character_config")
-
+    frontend: dict = Field(default=None, alias="frontend")
     DESCRIPTIONS: ClassVar[Dict[str, Description]] = {
         "system_config": Description(
             en="System configuration settings", zh="系统配置设置"

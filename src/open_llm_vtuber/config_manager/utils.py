@@ -7,7 +7,6 @@ import os
 import re
 import chardet
 from loguru import logger
-
 from .main import Config
 
 T = TypeVar("T", bound=BaseModel)
@@ -125,6 +124,9 @@ def save_config(config: BaseModel, config_path: Union[str, Path]):
 
 
 def scan_config_alts_directory(config_alts_dir: str) -> list[dict]:
+    print(f"[DEBUG] config_alts_dir: {config_alts_dir} (cwd: {os.getcwd()})")
+    abs_config_alts_dir = os.path.abspath(config_alts_dir)
+    print(f"[DEBUG] config_alts_dir: {config_alts_dir} (abs: {abs_config_alts_dir}) (cwd: {os.getcwd()})")
     """
     Scan the config_alts directory and return a list of config information.
     Each config info contains the filename and its display name from the config.

@@ -15,7 +15,7 @@ from .service_context import ServiceContext
 from .config_manager.utils import Config
 from starlette.middleware.base import BaseHTTPMiddleware
 import time
-from fastapi.responses import JSONResponse
+
 
 
 class SecurityMiddleware(BaseHTTPMiddleware):
@@ -118,14 +118,11 @@ class UserRateLimitMiddleware(BaseHTTPMiddleware):
 
 class CustomStaticFiles(StaticFiles):
     async def get_response(self, path, scope):
-        import os
-        print(f"[DEBUG] StaticFiles get_response: directory={self.directory}, path={path}")
-        abs_path = os.path.join(self.directory, path)
-        print(f"[DEBUG] StaticFiles resolved absolute path: {abs_path}")
         response = await super().get_response(path, scope)
-        if response.status_code == 404:
-            print(f"[DEBUG] 404 Not Found (resolved): {abs_path}")
+        if path.endswith(".js"):
+            response.headers["Content-Type"] = "application/javascript"
         return response
+
 
 class AvatarStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
@@ -139,10 +136,6 @@ class WebSocketServer:
     def __init__(self, config: Config):
         self.app = FastAPI()
 
-        async def not_found_handler(request: Request, exc):
-            print(f"[DEBUG] 404 Not Found: {request.url.path}")
-            return JSONResponse(status_code=404, content={"detail": "Not Found"})
-        self.app.add_exception_handler(404, not_found_handler)
         # セキュリティミドルウェアを最初に追加
         self.app.add_middleware(SecurityMiddleware)
         # ★ここで追加
@@ -160,43 +153,6 @@ class WebSocketServer:
         # Load configurations and initialize the default context cache
         default_context_cache = ServiceContext()
         default_context_cache.load_from_config(config)
-
-        # Live2Dモデルのロード状況をログ出力
-        try:
-            live2d_models = []
-            frontend_config = getattr(config, "frontend", None)
-            if frontend_config is not None:
-                if isinstance(frontend_config, dict):
-                    live2d_models = frontend_config.get("live2d_models", [])
-                elif hasattr(frontend_config, "live2d_models"):
-                    live2d_models = getattr(frontend_config, "live2d_models", [])
-            print(f"[Live2D] frontend_config: {frontend_config}")
-            print(f"[Live2D] live2d_models (raw): {live2d_models}")
-            # live2d-modelsディレクトリの絶対パスを解決
-            base_dir = frontend_config.get("base_dir", ".") if isinstance(frontend_config, dict) else getattr(frontend_config, "base_dir", ".")
-            live2d_model_path = frontend_config.get("live2d_model_path", "live2d-models") if isinstance(frontend_config, dict) else getattr(frontend_config, "live2d_model_path", "live2d-models")
-            live2d_model_dir = os.path.join(base_dir, live2d_model_path)
-            live2d_model_dir = os.path.abspath(live2d_model_dir)
-            print(f"[Live2D] live2d_model_dir: {live2d_model_dir}")
-            print(f"[Live2D] Directory exists: {os.path.exists(live2d_model_dir)}")
-            if os.path.exists(live2d_model_dir):
-                print(f"[Live2D] live2d-modelsディレクトリ内: {os.listdir(live2d_model_dir)}")
-            print(f"[DEBUG] frontend_config type: {type(frontend_config)} value: {frontend_config}")
-            print(f"[DEBUG] live2d_models type: {type(live2d_models)} value: {live2d_models}")
-            if isinstance(live2d_models, list):
-                for m in live2d_models:
-                    model_dir = os.path.join(live2d_model_dir, m.get('path', m.get('name', '')))
-                    print(f"[Live2D] モデル '{m.get('name', m)}' のパス: {model_dir} 存在: {os.path.exists(model_dir)}")
-                if len(live2d_models) > 1:
-                    print(f"✅ Live2Dモデル複数取得OK: {[m.get('name', m) for m in live2d_models]}")
-                elif len(live2d_models) == 1:
-                    print(f"⚠️ Live2Dモデル単体のみ取得: 失敗扱い [{live2d_models[0].get('name', live2d_models[0])}]")
-                else:
-                    print("❌ Live2Dモデルが0件です")
-            else:
-                print("❌ live2d_modelsの型が不正です")
-        except Exception as e:
-            print(f"❌ Live2Dモデル取得時エラー: {e}")
 
         # Include WebSocket routes FIRST before any static file mounts
         self.app.include_router(
@@ -219,95 +175,97 @@ class WebSocketServer:
         # Mount static files（live2d-modelsはconfigからパス取得）
         frontend_config = getattr(config, "frontend", None)
         live2d_model_path = "live2d-models"
-        # base_dir, live2d_model_pathを取得
+        # dict型の場合
         if isinstance(frontend_config, dict):
-            base_dir = frontend_config.get("base_dir", "")
-            live2d_model_path = frontend_config.get("live2d_model_path", "live2d-models")
-        elif hasattr(frontend_config, "base_dir"):
-            base_dir = getattr(frontend_config, "base_dir", "")
-            live2d_model_path = getattr(frontend_config, "live2d_model_path", "live2d-models")
-        else:
-            base_dir = "."
-            live2d_model_path = "live2d-models"
-
-        # base_dir + live2d_model_path でパスを合成
-        live2d_model_dir = os.path.join(base_dir, live2d_model_path)
-        try:
-            # 追加デバッグ: config全体の型・内容をprint
-            print(f"[DEBUG] config type: {type(config)}")
+            live2d_model_path = frontend_config.get("live2d_model_path", live2d_model_path)
+        # オブジェクト型の場合
+        elif hasattr(frontend_config, "live2d_model_path"):
+            live2d_model_path = frontend_config.live2d_model_path
+        # 相対パスの場合は絶対パスに変換
+        if not os.path.isabs(live2d_model_path):
+            live2d_model_path = os.path.abspath(live2d_model_path)
+        
+        print(f"Live2D models directory: {live2d_model_path}")
+        print(f"Directory exists: {os.path.exists(live2d_model_path)}")
+        
+        # カスタムエンドポイントの定義前にログ出力
+        print("🚀 About to define custom Live2D endpoint...")
+        
+        # StaticFilesの代わりにカスタムエンドポイントを使用
+        @self.app.get("/live2d-models/{file_path:path}")
+        async def serve_live2d_file(file_path: str):
+            """Live2Dファイルを提供するエンドポイント（パス正規化・詳細エラーログ付き）"""
+            import mimetypes
+            from fastapi.responses import FileResponse
+            import logging
+            logger = logging.getLogger("SecurityMiddleware")
             try:
-                import pprint
-                pprint.pprint(config.__dict__ if hasattr(config, '__dict__') else config)
-            except Exception as e:
-                print(f"[DEBUG] config pprint error: {e}")
-
-            live2d_models = []
-            frontend_config = getattr(config, "frontend", None)
-            print(f"[DEBUG] frontend_config type: {type(frontend_config)} value: {frontend_config}")
-            if frontend_config is not None:
-                if isinstance(frontend_config, dict):
-                    live2d_models = frontend_config.get("live2d_models", [])
-                elif hasattr(frontend_config, "live2d_models"):
-                    live2d_models = getattr(frontend_config, "live2d_models", [])
-            print(f"[DEBUG] live2d_models type: {type(live2d_models)} value: {live2d_models}")
-            # live2d-modelsディレクトリの絶対パスを解決
-            base_dir = frontend_config.get("base_dir", ".") if isinstance(frontend_config, dict) else getattr(frontend_config, "base_dir", ".")
-            live2d_model_path = frontend_config.get("live2d_model_path", "live2d-models") if isinstance(frontend_config, dict) else getattr(frontend_config, "live2d_model_path", "live2d-models")
-            live2d_model_dir = os.path.join(base_dir, live2d_model_path)
-            live2d_model_dir = os.path.abspath(live2d_model_dir)
-            print(f"[Live2D] live2d_model_dir: {live2d_model_dir}")
-            print(f"[Live2D] Directory exists: {os.path.exists(live2d_model_dir)}")
-            if os.path.exists(live2d_model_dir):
-                print(f"[Live2D] live2d-modelsディレクトリ内: {os.listdir(live2d_model_dir)}")
-            if isinstance(live2d_models, list):
-                for m in live2d_models:
-                    model_dir = os.path.join(live2d_model_dir, m.get('path', m.get('name', '')))
-                    print(f"[Live2D] モデル '{m.get('name', m)}' のパス: {model_dir} 存在: {os.path.exists(model_dir)}")
-                if len(live2d_models) > 1:
-                    print(f"✅ Live2Dモデル複数取得OK: {[m.get('name', m) for m in live2d_models]}")
-                elif len(live2d_models) == 1:
-                    print(f"⚠️ Live2Dモデル単体のみ取得: 失敗扱い [{live2d_models[0].get('name', live2d_models[0])}]")
+                # パス正規化とディレクトリトラバーサル防止
+                full_path = os.path.abspath(os.path.join(live2d_model_path, file_path))
+                base_path = os.path.abspath(live2d_model_path)
+                if not full_path.startswith(base_path):
+                    msg403 = f"Directory traversal attempt: {file_path} -> {full_path}"
+                    print(msg403)
+                    logger.warning(msg403)
+                    from fastapi import HTTPException
+                    raise HTTPException(status_code=403, detail="Forbidden")
+                # 必要最小限のリクエストログ
+                msg = f"Live2D request: {file_path} -> {full_path}"
+                print(msg)
+                logger.info(msg)
+                if os.path.exists(full_path) and os.path.isfile(full_path):
+                    mime_type, _ = mimetypes.guess_type(full_path)
+                    if mime_type is None:
+                        if file_path.endswith('.json'):
+                            mime_type = 'application/json'
+                        elif file_path.endswith('.moc3'):
+                            mime_type = 'application/octet-stream'
+                        elif file_path.endswith('.png'):
+                            mime_type = 'image/png'
+                        else:
+                            mime_type = 'application/octet-stream'
+                    return FileResponse(
+                        path=full_path,
+                        media_type=mime_type,
+                        headers={"Access-Control-Allow-Origin": "*"}
+                    )
                 else:
-                    print("❌ Live2Dモデルが0件です")
-            else:
-                print("❌ live2d_modelsの型が不正です")
-        except Exception as e:
-            print(f"❌ Live2Dモデル取得時エラー: {e}")
-                # ...不要なインデントエラー部分を削除...
+                    # 404時のみログ
+                    msg404 = f"Live2D file not found: {full_path}"
+                    print(msg404)
+                    logger.warning(msg404)
+                    from fastapi import HTTPException
+                    raise HTTPException(
+                        status_code=404, 
+                        detail=f"File not found: {full_path}"
+                    )
+            except Exception as e:
+                import traceback
+                tb = traceback.format_exc()
+                msgerr = f"Live2D error: {str(e)} ({type(e).__name__})\n{tb}"
+                print(msgerr)
+                logger.error(msgerr)
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Internal server error: {str(e)}"
+                )
         
         print(f"✅ Custom endpoint for /live2d-models -> {live2d_model_path}")
         print("🎯 Custom endpoint defined successfully!")
 
         # conf.yamlのbase_dir+backgrounds_pathから背景ディレクトリを取得
-        # base_dir, backgrounds_path, avatars_path, assets_pathを一度だけ取得し、以降は変数を使い回す
+        bg_dir = None
         if isinstance(frontend_config, dict):
             base_dir = frontend_config.get("base_dir", "")
             backgrounds_path = frontend_config.get("backgrounds_path", "backgrounds")
-            avatars_path = frontend_config.get("avatars_path", "avatars")
-            assets_path = frontend_config.get("assets_path", "assets")
-        elif hasattr(frontend_config, "base_dir"):
+            bg_dir = os.path.join(base_dir, backgrounds_path)
+        elif hasattr(frontend_config, "base_dir") and hasattr(frontend_config, "backgrounds_path"):
             base_dir = getattr(frontend_config, "base_dir", "")
             backgrounds_path = getattr(frontend_config, "backgrounds_path", "backgrounds")
-            avatars_path = getattr(frontend_config, "avatars_path", "avatars")
-            assets_path = getattr(frontend_config, "assets_path", "assets")
+            bg_dir = os.path.join(base_dir, backgrounds_path)
         else:
-            base_dir = "."
-            backgrounds_path = "backgrounds"
-            avatars_path = "avatars"
-            assets_path = "assets"
-
-        bg_dir = os.path.join(base_dir, backgrounds_path)
-        avatars_dir = os.path.join(base_dir, avatars_path)
-        assets_dir = os.path.join(base_dir, assets_path)
-        # ここに追加！
-        self.app.mount(
-            "/live2d-models",
-            CustomStaticFiles(directory=live2d_model_dir),
-            name="live2d_models",
-        )
-        print(f"✅ /live2d-models mount complete: {live2d_model_dir}")
-
-        # 以下、他のmount        
+            bg_dir = "backgrounds"
         self.app.mount(
             "/bg",
             StaticFiles(directory=bg_dir),
@@ -324,7 +282,7 @@ class WebSocketServer:
             avatars_path = getattr(frontend_config, "avatars_path", "avatars")
             avatars_dir = os.path.join(base_dir, avatars_path)
         else:
-            avatars_dir = "avatars"
+            avatars_dir = "avatars"        
         self.app.mount(
             "/avatars",
             AvatarStaticFiles(directory=avatars_dir),
