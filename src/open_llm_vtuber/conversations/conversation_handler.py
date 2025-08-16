@@ -133,7 +133,7 @@ async def start_youtube_comment_listener(
             if loop.is_running():
                 coro = service_context.load_from_config(config_obj)
                 task = asyncio.create_task(coro)
-                loop.run_until_complete(asyncio.sleep(0))  # すぐに初期化
+                # すでにイベントループが走っている場合は run_until_complete を呼ばない
             else:
                 loop.run_until_complete(service_context.load_from_config(config_obj))
             service_context.client_uid = client_uid

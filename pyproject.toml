@@ -38,6 +38,7 @@ dependencies = [
     "uvicorn[standard]>=0.33.0",
     "websocket-client>=1.8.0",
     "letta-client>=0.1.100",
+    "google-api-python-client",
     "duckduckgo-mcp-server>=0.1.1",
 ]
 
