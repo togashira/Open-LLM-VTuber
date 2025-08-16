@@ -243,6 +243,10 @@ async def handle_group_member_turn(
     context = client_contexts[current_member_uid]
     current_ws_send = client_connections[current_member_uid].send_text
 
+    # --- YouTubeコメント由来の入力なら、ServiceContextにauthor名を一時的にセット ---
+    if metadata and metadata.get("yt_comment_author"):
+        setattr(context, "_yt_comment_author", metadata["yt_comment_author"])
+
     new_messages = state.conversation_history[state.memory_index[current_member_uid] :]
     new_context = "\n".join(new_messages) if new_messages else ""
 

@@ -1,10 +1,15 @@
+import asyncio
 import os
 import sys
 import atexit
-import asyncio
 import argparse
 import subprocess
 from pathlib import Path
+import uvicorn
+from loguru import logger
+from upgrade import sync_user_config, select_language
+from src.open_llm_vtuber.server import WebSocketServer
+from src.open_llm_vtuber.config_manager import Config, read_yaml, validate_config
 import tomli
 import uvicorn
 from loguru import logger
@@ -122,8 +127,7 @@ def run(console_log_level: str):
     lang = select_language()
 
     # Check if the frontend submodule is initialized
-    check_frontend_submodule(lang)
-
+    import yaml
     # Sync user config with default config
     try:
         sync_user_config(logger=logger, lang=lang)
@@ -150,6 +154,49 @@ def run(console_log_level: str):
     except Exception as e:
         logger.error(f"Failed to initialize server context: {e}")
         sys.exit(1)  # Exit if initialization fails
+
+
+    # conf.yamlからYouTubeコメント取得有効フラグを取得
+    import yaml
+    with open("conf.yaml", "r", encoding="utf-8") as f:
+        conf = yaml.safe_load(f)
+    yt_enabled = False
+    if "YOUTUBE_API_KEY" in conf and "YOUTUBE_CHANNEL_ID" in conf:
+        yt_enabled = conf.get("youtube_comment_listener_enabled", False)
+
+    if yt_enabled:
+        logger.info(f"[YouTube] コメント取得有効: {yt_enabled}, API_KEY: {conf.get('YOUTUBE_API_KEY')}, CHANNEL_ID: {conf.get('YOUTUBE_CHANNEL_ID')}")
+        # --- 環境変数にAPIキーとチャンネルIDをセット ---
+        os.environ["YOUTUBE_API_KEY"] = str(conf.get("YOUTUBE_API_KEY", ""))
+        os.environ["YOUTUBE_CHANNEL_ID"] = str(conf.get("YOUTUBE_CHANNEL_ID", ""))
+
+        import threading
+        from src.open_llm_vtuber.conversations.conversation_handler import start_youtube_comment_listener
+
+        def youtube_listener_bg():
+            logger.info("[YouTube] コメント監視タスクをバックグラウンドで起動します")
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    start_youtube_comment_listener(
+                        client_uid="system-youtube-listener",
+                        context=None,
+                        websocket=None,
+                        client_contexts=None,
+                        client_connections=None,
+                        chat_group_manager=None,
+                        received_data_buffers=None,
+                        current_conversation_tasks=None,
+                        broadcast_to_group=None,
+                    )
+                )
+            except Exception as e:
+                logger.error(f"YouTubeコメント監視タスク起動失敗: {e}")
+
+        threading.Thread(target=youtube_listener_bg, daemon=True).start()
+    else:
+        logger.info(f"[YouTube] コメント取得は無効です (youtube_comment_listener_enabled={yt_enabled})")
 
     # Run the Uvicorn server
     logger.info(f"Starting server on {server_config.host}:{server_config.port}")

@@ -1,3 +1,179 @@
+import traceback
+import yaml
+import os
+from dotenv import load_dotenv
+
+
+from ..agent.stateless_llm_factory import LLMFactory as StatelessLLMFactory
+from ..AITUBER.youtube_group_talk import YouTubeGroupTalk, YouTubeCommentAdapter
+
+# === AITUBER Agent/YouTubeコメント連携 ===
+def load_aituber_agent_config(conf_path="conf.yaml"):
+    """
+    conf.yamlからAITUBER_agentまたはAITUBER_apiの設定を取得
+    """
+    with open(conf_path, "r", encoding="utf-8") as f:
+        conf = yaml.safe_load(f)
+    logger.debug(f"[DEBUG] conf.yaml loaded: keys={list(conf.keys())}")
+    if "AITUBER_agent" in conf:
+        logger.debug("[DEBUG] Using AITUBER_agent config")
+        return conf["AITUBER_agent"]
+    elif "AITUBER_api" in conf:
+        logger.debug("[DEBUG] Using AITUBER_api config")
+        return conf["AITUBER_api"]
+    else:
+        logger.error("[DEBUG] No AITUBER_agent or AITUBER_api found in conf.yaml")
+        raise ValueError("AITUBER_agent or AITUBER_api config not found in conf.yaml")
+
+
+def get_aituber_llm_instance():
+    """
+    conf.yamlの設定に基づきLLMインスタンスを生成
+    """
+    logger.debug("[DEBUG] get_aituber_llm_instance called")
+    config = load_aituber_agent_config()
+    logger.debug(f"[DEBUG] LLM config: {config}")
+    llm_provider = config.get("llm_provider") or ("aituber_api" if config.get("base_url") else None)
+    logger.debug(f"[DEBUG] llm_provider resolved: {llm_provider}")
+    if not llm_provider:
+        logger.error("[DEBUG] llm_provider or base_url missing in config")
+        raise ValueError("llm_provider or base_url must be set in conf.yaml")
+    try:
+        config_wo_provider = {k: v for k, v in config.items() if k != "llm_provider"}
+        llm = StatelessLLMFactory.create_llm(llm_provider, **config_wo_provider)
+        logger.debug(f"[DEBUG] LLM instance created: {llm}")
+        return llm
+    except Exception as e:
+        logger.error(f"[DEBUG] LLMFactory.create_llm error: {e}\n{traceback.format_exc()}")
+        raise
+
+# YouTubeコメントを会話フローに流し込む
+async def inject_youtube_comment_to_conversation(
+    comment,
+    client_uid,
+    context,
+    websocket,
+    client_contexts,
+    client_connections,
+    chat_group_manager,
+    received_data_buffers,
+    current_conversation_tasks,
+    broadcast_to_group,
+):
+    """
+    YouTubeコメントを通常の会話トリガーとして流し込む
+    """
+    logger.debug(f"[DEBUG] inject_youtube_comment_to_conversation: comment={comment}, client_uid={client_uid}")
+    # YouTubeコメントをAI応答のprefixに反映させるため、contextに一時的にauthor名をセット
+    author = comment.get('author', 'YouTubeUser')
+    message = comment.get('message', '')
+    # contextがNoneならclient_contextsから取得
+    if context is None and client_contexts is not None:
+        context = client_contexts.get(client_uid)
+    if context is not None:
+        setattr(context, "_yt_comment_author", author)
+    else:
+        logger.error(f"[ERROR] inject_youtube_comment_to_conversation: contextが取得できません client_uid={client_uid}")
+    # AIへの入力としてYouTubeコメントを会話トリガーに流し込む
+    data = {
+        "text": message
+    }
+    await handle_conversation_trigger(
+        msg_type="text-input",
+        data=data,
+        client_uid=client_uid,
+        context=context,
+        websocket=websocket,
+        client_contexts=client_contexts,
+        client_connections=client_connections,
+        chat_group_manager=chat_group_manager,
+        received_data_buffers=received_data_buffers,
+        current_conversation_tasks=current_conversation_tasks,
+        broadcast_to_group=broadcast_to_group,
+    )
+
+# === YouTubeコメント監視・割り込み起動例 ===
+async def start_youtube_comment_listener(
+    client_uid,
+    context,
+    websocket,
+    client_contexts,
+    client_connections,
+    chat_group_manager,
+    received_data_buffers,
+    current_conversation_tasks,
+    broadcast_to_group,
+):
+    """
+    YouTubeコメントを定期的に監視し、会話フローに割り込ませる
+    """
+    logger.debug(f"[DEBUG] start_youtube_comment_listener: client_uid={client_uid}")
+    load_dotenv()
+    api_key = os.getenv("YOUTUBE_API_KEY")
+    channel_id = os.getenv("YOUTUBE_CHANNEL_ID")
+    logger.debug(f"[DEBUG] YOUTUBE_API_KEY={api_key}, YOUTUBE_CHANNEL_ID={channel_id}")
+    if not api_key or not channel_id:
+        logger.error("[DEBUG] YOUTUBE_API_KEYまたはYOUTUBE_CHANNEL_IDが未設定です")
+        logger.warning("YOUTUBE_API_KEYまたはYOUTUBE_CHANNEL_IDが未設定です")
+        return
+
+
+    # --- YouTubeコメントリスナー用ServiceContext初期化 ---
+    if client_contexts is None:
+        client_contexts = {}
+    if client_uid not in client_contexts:
+        try:
+            from ..service_context import ServiceContext, Config, read_yaml
+            service_context = ServiceContext()
+            # conf.yamlからConfigをロードし、ServiceContextに反映
+            config_dict = read_yaml("conf.yaml")
+            config_obj = Config.model_validate(config_dict)
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                coro = service_context.load_from_config(config_obj)
+                task = asyncio.create_task(coro)
+                loop.run_until_complete(asyncio.sleep(0))  # すぐに初期化
+            else:
+                loop.run_until_complete(service_context.load_from_config(config_obj))
+            service_context.client_uid = client_uid
+            client_contexts[client_uid] = service_context
+            logger.info(f"[DEBUG] ServiceContext for {client_uid} initialized and registered.")
+        except Exception as e:
+            logger.error(f"[ERROR] ServiceContext初期化失敗: {e}\n{traceback.format_exc()}")
+            return
+
+    yt_adapter = YouTubeCommentAdapter(api_key=api_key, channel_id=channel_id)
+    logger.debug(f"[DEBUG] YouTubeCommentAdapter created: {yt_adapter}")
+    if not yt_adapter.live_chat_id:
+        logger.error("[DEBUG] live_chat_id取得失敗。配信が無いかコメント無効")
+        logger.warning("❌ live_chat_id取得失敗。配信が無いかコメント無効")
+        return
+    group_talk = YouTubeGroupTalk(yt_adapter)
+    logger.debug(f"[DEBUG] YouTubeGroupTalk created: {group_talk}")
+    while True:
+        try:
+            logger.debug("[DEBUG] Polling YouTube comments...")
+            new_comments = group_talk.poll_comments()
+            logger.debug(f"[DEBUG] new_comments: {new_comments}")
+            for comment in new_comments:
+                logger.debug(f"[DEBUG] New YouTube comment: {comment}")
+                # client_contextsは必ずdictとして渡す
+                await inject_youtube_comment_to_conversation(
+                    comment,
+                    client_uid,
+                    client_contexts.get(client_uid),
+                    websocket,
+                    client_contexts,
+                    client_connections,
+                    chat_group_manager,
+                    received_data_buffers,
+                    current_conversation_tasks,
+                    broadcast_to_group,
+                )
+        except Exception as e:
+            logger.error(f"💥 YouTubeコメント監視エラー: {e}\n{traceback.format_exc()}")
+        await asyncio.sleep(5)
 import asyncio
 import json
 from typing import Dict, Optional, Callable
@@ -29,6 +205,9 @@ async def handle_conversation_trigger(
     current_conversation_tasks: Dict[str, Optional[asyncio.Task]],
     broadcast_to_group: Callable,
 ) -> None:
+    if current_conversation_tasks is None:
+        current_conversation_tasks = {}
+    metadata = None
     """Handle triggers that start a conversation"""
     metadata = None
 
@@ -71,7 +250,11 @@ async def handle_conversation_trigger(
     images = data.get("images")
     session_emoji = np.random.choice(EMOJI_LIST)
 
-    group = chat_group_manager.get_client_group(client_uid)
+    if chat_group_manager is not None:
+        group = chat_group_manager.get_client_group(client_uid)
+    else:
+        group = None
+
     if group and len(group.members) > 1:
         # Use group_id as task key for group conversations
         task_key = group.group_id
@@ -96,10 +279,15 @@ async def handle_conversation_trigger(
             )
     else:
         # Use client_uid as task key for individual conversations
+        if websocket is not None:
+            ws_send = websocket.send_text
+        else:
+            async def ws_send(*args, **kwargs):
+                return None
         current_conversation_tasks[client_uid] = asyncio.create_task(
             process_single_conversation(
                 context=context,
-                websocket_send=websocket.send_text,
+                websocket_send=ws_send,
                 client_uid=client_uid,
                 user_input=user_input,
                 images=images,

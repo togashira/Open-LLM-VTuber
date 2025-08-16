@@ -31,6 +31,10 @@ async def process_single_conversation(
     session_emoji: str = np.random.choice(EMOJI_LIST),
     metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
+    # contextやasr_engineが未初期化の場合は即return
+    if context is None or not hasattr(context, "asr_engine") or context.asr_engine is None:
+        logger.error("[ERROR] process_single_conversation: contextまたはasr_engineが未初期化です。AI応答をスキップします。")
+        return ""
     """Process a single-user conversation turn
 
     Args:
@@ -49,6 +53,11 @@ async def process_single_conversation(
     tts_manager = TTSTaskManager()
     full_response = ""  # Initialize full_response here
 
+    yt_author = None
+    if context is not None and hasattr(context, "_yt_comment_author"):
+        yt_author = getattr(context, "_yt_comment_author")
+        delattr(context, "_yt_comment_author")
+
     try:
         # Send initial signals
         await send_conversation_start_signals(websocket_send)
@@ -64,7 +73,6 @@ async def process_single_conversation(
             input_text=input_text,
             images=images,
             from_name=context.character_config.human_name,
-            metadata=metadata,
         )
 
         # Store user message (check if we should skip storing to history)
@@ -147,6 +155,10 @@ async def process_single_conversation(
             websocket_send=websocket_send,
             client_uid=client_uid,
         )
+
+        # --- AI応答にYouTubeコメント主のprefixを付与 ---
+        if yt_author and full_response:
+            full_response = f"{yt_author}さん＞{full_response}"
 
         if context.history_uid and full_response:  # Check full_response before storing
             store_message(

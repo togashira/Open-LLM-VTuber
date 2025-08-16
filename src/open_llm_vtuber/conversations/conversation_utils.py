@@ -4,44 +4,129 @@ from typing import Optional, Union, Any, List, Dict
 import numpy as np
 import json
 from loguru import logger
-
+import yaml
+import os
+from dotenv import load_dotenv
 from ..message_handler import message_handler
 from .types import WebSocketSend, BroadcastContext
 from .tts_manager import TTSTaskManager
 from ..agent.output_types import SentenceOutput, AudioOutput
 from ..agent.input_types import BatchInput, TextData, ImageData, TextSource, ImageSource
+from ..agent.stateless_llm_factory import LLMFactory as StatelessLLMFactory
+from ..AITUBER.youtube_group_talk import YouTubeGroupTalk, YouTubeCommentAdapter
 from ..asr.asr_interface import ASRInterface
 from ..live2d_model import Live2dModel
 from ..tts.tts_interface import TTSInterface
 from ..utils.stream_audio import prepare_audio_payload
-from ..service_context import ServiceContext
-from ..agent.agents.agent_interface import AgentInterface
-
-
-# Convert class methods to standalone functions
-def create_batch_input(
-    input_text: str,
-    images: Optional[List[Dict[str, Any]]],
-    from_name: str,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> BatchInput:
+def create_batch_input(input_text: str, images: Optional[List[Dict[str, Any]]], from_name: str) -> BatchInput:
     """Create batch input for agent processing"""
     return BatchInput(
-        texts=[
-            TextData(source=TextSource.INPUT, content=input_text, from_name=from_name)
-        ],
-        images=[
-            ImageData(
-                source=ImageSource(img["source"]),
-                data=img["data"],
-                mime_type=img["mime_type"],
-            )
-            for img in (images or [])
-        ]
-        if images
-        else None,
+        texts=[TextData(source=TextSource.INPUT, content=input_text, from_name=from_name)],
+        images=[ImageData(source=ImageSource(img["source"]), data=img["data"], mime_type=img["mime_type"]) for img in (images or [])] if images else None,
+    )
+
+# === AITUBER Agent/YouTubeコメント連携 ===
+def load_aituber_agent_config(conf_path="conf.yaml"):
+    """
+    conf.yamlからAITUBER_agentまたはAITUBER_apiの設定を取得
+    """
+    with open(conf_path, "r", encoding="utf-8") as f:
+        conf = yaml.safe_load(f)
+    if "AITUBER_agent" in conf:
+        return conf["AITUBER_agent"]
+    elif "AITUBER_api" in conf:
+        return conf["AITUBER_api"]
+    else:
+        raise ValueError("AITUBER_agent or AITUBER_api config not found in conf.yaml")
+
+def get_aituber_llm_instance():
+    """
+    conf.yamlの設定に基づきLLMインスタンスを生成
+    """
+    config = load_aituber_agent_config()
+    llm_provider = config.get("llm_provider") or ("aituber_api" if config.get("base_url") else None)
+    if not llm_provider:
+        raise ValueError("llm_provider or base_url must be set in conf.yaml")
+    return StatelessLLMFactory.create_llm(llm_provider, **config)
+
+# YouTubeコメントを会話フローに流し込む
+async def inject_youtube_comment_to_conversation(
+    comment,
+    client_uid,
+    context,
+    websocket,
+    client_contexts,
+    client_connections,
+    chat_group_manager,
+    received_data_buffers,
+    current_conversation_tasks,
+    broadcast_to_group,
+):
+    """
+    YouTubeコメントを通常の会話トリガーとして流し込む
+    """
+    # regular_labelがあればAI入力に反映
+    label = comment.get("regular_label", "")
+    author = comment.get("author", "YouTubeUser")
+    message = comment.get("message", "")
+    if label == "常連":
+        prefix = f"{author}さん（常連）"
+    elif label == "また来てくれてありがとう":
+        prefix = f"{author}さん、また来てくれてありがとう！"
+    else:
+        prefix = f"{author}さん"
+    data = {
+        "text": f"{prefix} のコメント: {message}"
+    }
+    # グループ会話時はmetadataでauthor名を渡す
+    metadata = {"yt_comment_author": author}
+    await handle_conversation_trigger(
+        msg_type="text-input",
+        data=data,
+        client_uid=client_uid,
+        context=context,
+        websocket=websocket,
+        client_contexts=client_contexts,
+        client_connections=client_connections,
+        chat_group_manager=chat_group_manager,
+        received_data_buffers=received_data_buffers,
+        current_conversation_tasks=current_conversation_tasks,
+        broadcast_to_group=broadcast_to_group,
         metadata=metadata,
     )
+    """
+    YouTubeコメントを定期的に監視し、会話フローに割り込ませる
+    """
+    load_dotenv()
+    api_key = os.getenv("YOUTUBE_API_KEY")
+    channel_id = os.getenv("YOUTUBE_CHANNEL_ID")
+    if not api_key or not channel_id:
+        logger.warning("YOUTUBE_API_KEYまたはYOUTUBE_CHANNEL_IDが未設定です")
+        return
+    yt_adapter = YouTubeCommentAdapter(api_key=api_key, channel_id=channel_id)
+    if not yt_adapter.live_chat_id:
+        logger.warning("❌ live_chat_id取得失敗。配信が無いかコメント無効")
+        return
+    group_talk = YouTubeGroupTalk(yt_adapter)
+    while True:
+        try:
+            new_comments = group_talk.poll_comments()
+            for comment in new_comments:
+                await inject_youtube_comment_to_conversation(
+                    comment,
+                    client_uid,
+                    context,
+                    websocket,
+                    client_contexts,
+                    client_connections,
+                    chat_group_manager,
+                    received_data_buffers,
+                    current_conversation_tasks,
+                    broadcast_to_group,
+                )
+        except Exception as e:
+            logger.error(f"💥 YouTubeコメント監視エラー: {e}")
+        await asyncio.sleep(5)
 
 
 async def process_agent_output(
@@ -52,6 +137,7 @@ async def process_agent_output(
     websocket_send: WebSocketSend,
     tts_manager: TTSTaskManager,
     translate_engine: Optional[Any] = None,
+# YouTubeコメントを会話フローに流し込む
 ) -> str:
     """Process agent output with character information and optional translation"""
     output.display_text.name = character_config.character_name
@@ -70,6 +156,7 @@ async def process_agent_output(
             )
         elif isinstance(output, AudioOutput):
             full_response = await handle_audio_output(output, websocket_send)
+# === YouTubeコメント監視・割り込み起動例 ===
         else:
             logger.warning(f"Unknown output type: {type(output)}")
     except Exception as e:
